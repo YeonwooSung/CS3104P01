@@ -4,13 +4,18 @@
 
 #include <stdio.h>
 
+/**
+ * The custom strlen function.
+ *
+ * @param str the string to check it's length
+ * @return the length of the string
+ */
 int strlength(char *str) {
     int count = 0;
 
     while (*str != '\0') {
         count += 1;
         str += 1;
-        printf("%d\n", count);
     }
 
     return count;
