@@ -2,6 +2,20 @@
 
 #define WRITE_SYSCALL 1
 
+#include <stdio.h>
+
+int strlength(char *str) {
+    int count = 0;
+
+    while (*str != '\0') {
+        count += 1;
+        str += 1;
+        printf("%d\n", count);
+    }
+
+    return count;
+}
+
 /**
  * This function prints out the given string.
  * This function uses the inner assembly function to make interaction with the kernel more explicit.
