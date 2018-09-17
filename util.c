@@ -2,8 +2,6 @@
 
 #define WRITE_SYSCALL 1
 
-#include <stdio.h>
-
 /**
  * The custom strlen function.
  *
@@ -23,8 +21,8 @@ int strlength(char *str) {
 
 /**
  * This function prints out the given string.
- * This function uses the inner assembly function to make interaction with the kernel more explicit.
- * I reuse the Kasim's code to implement this function.
+ * This function uses the inline assembly function to make interaction with the kernel more explicit.
+ * To implement this function, I reused the given code, which is written by Kasim Terzic.
  *
  * @param text the target text that should be printed out
  * @return ret
@@ -37,14 +35,22 @@ int printOut(char *text) {
     long handle = 1;  //1 for stdout, 2 for stderr, file handle from open() for files
     long ret = -1;    //Return value received from the system call
 
-    // Using inline assembler with shortcuts.
-    // The registers are the same as above. We use a constraint to force variables into particular registers:
-    // a = rax, D = rdi, S = rsi, d = rdx... This is a property of GNU inline assembler.
-    // The only asm instruction we have to execute is syscall, since all the arguments are in the right registers
-    asm("syscall"
-        : "=a"(ret)
-        : "0"(WRITE_SYSCALL), "D"(handle), "S"(text), "d"(len)
-        : "cc", "rcx", "r11", "memory");
+
+    /* 
+     * Using inline assembler(extended assembler syntax), the long way. Here all the registers used are visible.
+     * Note that we have to protect rax etc. in the very last line to stop the gnu compiler
+     * from using them (and thus overwriting our data)
+     * Parameters go to RAX, RDI, RSI, RDX, in that order.
+     */
+    asm("movq %1, %%rax\n\t" // %1 == (long) WRITE_SYSCALL
+        "movq %2, %%rdi\n\t" // %1 == handle
+        "movq %3, %%rsi\n\t" // %3 == text
+        "movq %4, %%rdx\n\t" // %4 == len
+        "syscall\n\t"
+        "movq %%rax, %0\n\t" // %0 == ret
+        : "=r"(ret) /* output */
+        : "r"((long) WRITE_SYSCALL), "r"(handle), "r"(text), "r"(len) /* input */
+        : "%rax", "%rdi", "%rsi", "%rdx", "memory"); /* clobbered registers */
 
     return ret;
 }
