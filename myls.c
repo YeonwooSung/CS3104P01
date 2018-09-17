@@ -5,8 +5,12 @@
 #define WRITE_SYSCALL 1
 
 int main(int argc, char **argv) {
-    int i = printOut(argv[1]);
-    printf("\n%d\n", i);
+    if (argc > 1) {
+        printOut(argv[1]);
+    } else {
+        char usageMsg[26] = "Usage: ./myls \"file_path\"";
+        printOut(usageMsg);
+    }
 
-    return i;
+    return 1;
 }
