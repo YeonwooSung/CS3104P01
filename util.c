@@ -28,7 +28,7 @@ int printOut(char *text) {
 
     //using long ints here to avoid converting them for asm (rxx registers are 64 bits)
 
-    size_t len = 31;  //Length of our string, which we need to pass to write syscall
+    size_t len = strlength(text);  //Length of our string, which we need to pass to write syscall
     long handle = 1;  //1 for stdout, 2 for stderr, file handle from open() for files
     long ret = -1;    //Return value received from the system call
 
