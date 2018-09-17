@@ -18,19 +18,14 @@ int printOut(char *text) {
     long handle = 1;  //1 for stdout, 2 for stderr, file handle from open() for files
     long ret = -1;    //Return value received from the system call
 
-    //Using inline assembler. Here all the registers used are visible
-    //Note that we have to protect rax etc. in the very last line to stop the gnu compiler
-    //from using them (and thus overwriting our data)
-    //Parameters go to RAX, RDI, RSI, RDX, in that order
-    asm("movq %1, %%rax\n\t"
-        "movq %2, %%rdi\n\t"
-        "movq %3, %%rsi\n\t"
-        "movq %4, %%rdx\n\t"
-        "syscall\n\t"
-        "movq %%rax, %0\n\t"
-        : "=r"(ret)
-        : "r"((long)WRITE_SYSCALL), "r"(handle), "r"(text), "r"(len)
-        : "%rax", "%rdi", "%rsi", "%rdx", "memory");
+    // Using inline assembler with shortcuts.
+    // The registers are the same as above. We use a constraint to force variables into particular registers:
+    // a = rax, D = rdi, S = rsi, d = rdx... This is a property of GNU inline assembler.
+    // The only asm instruction we have to execute is syscall, since all the arguments are in the right registers
+    asm("syscall"
+        : "=a"(ret)
+        : "0"(WRITE_SYSCALL), "D"(handle), "S"(text), "d"(len)
+        : "cc", "rcx", "r11", "memory");
 
     return ret;
 }
