@@ -4,5 +4,5 @@
 #define WRITE_SYSCALL 1
 
 int main(int argc, char **argv) {
-    return printOut(argv[1]);
+    return printOut("test");
 }
