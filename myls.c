@@ -8,7 +8,7 @@ int main(int argc, char **argv) {
     if (argc > 1) {
         printOut(argv[1]);
     } else {
-        char usageMsg[26] = "Usage: ./myls \"file_path\"";
+        char usageMsg[27] = "Usage: ./myls \"file_path\"\n";
         printOut(usageMsg);
     }
 
