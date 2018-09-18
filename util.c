@@ -41,7 +41,7 @@ int  openDirectory(char *name) {
         "syscall\n\t"
         "movq %%rax, %0\n\t"
         : "=r"(ret)
-        : "r"((long) OPEN_SYSCALL), "r"(name), "r"(flag)
+        : "r"((long) OPEN_SYSCALL), "r"(name), "r"((long) flag)
         : "%rax", "%rdi", "%rsi", "%rdx", "memory");
 
     return ret;
