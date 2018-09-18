@@ -21,14 +21,13 @@ int strlength(char *str) {
     return count;
 }
 
-
 /**
  * This function opens the file by using the syscall.
  * The openDirectory() will be used to open the directory for the ls command.
  * This function uses the extended inline assembler to make interaction with the kernel more explicit.
  * 
  * @param name the name of the directory that should be opened for the ls command
- * @return ret
+ * @return ret If the syscall success, the lowest numbered unused file descriptor will be returned. Otherwise, returns -1.
  */
 int  openDirectory(char *name) {
     long ret = -1;
