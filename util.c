@@ -4,6 +4,9 @@
 #define OPEN_SYSCALL 2   //to open the directory
 #define STAT_SYSCALL 4   //to get the file stat of the specific file.
 
+#define OPEN_MODE S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH //this will be used for the open syscall
+
+
 /**
  * The custom strlen function.
  *
@@ -21,18 +24,19 @@ int strlength(char *str) {
     return count;
 }
 
+
 /**
  * This function opens the file by using the syscall.
  * The openDirectory() will be used to open the directory for the ls command.
  * This function uses the extended inline assembler to make interaction with the kernel more explicit.
  * 
  * @param name the name of the directory that should be opened for the ls command
- * @return ret If the syscall success, the lowest numbered unused file descriptor will be returned. Otherwise, returns -1.
+ * @return ret If the syscall success, the lowest numbered unused file descriptor will be returned. Otherwise, returns some negative value.
  */
 int  openDirectory(char *name) {
     long ret = -1;
     int flag = O_RDONLY;
-    int mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
+    int mode = OPEN_MODE;
 
     asm("movq %1, %%rax\n\t" // %1 = (long) OPEN_SYSCALL
         "movq %2, %%rdi\n\t" // %2 = name
