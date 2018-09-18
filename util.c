@@ -21,17 +21,42 @@ int strlength(char *str) {
     return count;
 }
 
-int  openFile(char *fileName) {
+
+/**
+ * This function opens the file by using the syscall.
+ * The openDirectory() will be used to open the directory for the ls command.
+ * This function uses the extended inline assembler to make interaction with the kernel more explicit.
+ * 
+ * @param name the name of the directory that should be opened for the ls command
+ * @return ret
+ */
+int  openDirectory(char *name) {
     long ret = -1;
-    //filename(rdi) flag(rsi) mode(rdx)
+    //int flags(rsi), int mode(rdx)
 
     asm("movq %1, %%rax\n\t" // %1 = (long) OPEN_SYSCALL
+        "movq %2, %%rdi\n\t" // %2 = name
+        "syscall\n\t"
+        "movq %%rax, %0\n\t"
+        : "=r"(ret)
+        : "r"((long) OPEN_SYSCALL), "r"(name)
+        : "%rax", "%rdi", "%rsi", "%rdx", "memory");
+
+    return ret;
+}
+
+
+int checkFileStat(char *fileName) {
+    long ret = -1;
+    //struct stat *statBuffer(rsi)
+
+    asm("movq %1, %%rax\n\t" // %1 = (long) STAT_SYSCALL
         "movq %2, %%rdi\n\t" // %2 = fileName
         "syscall\n\t"
         "movq %%rax, %0\n\t"
         : "=r"(ret)
-        : "r"((long) OPEN_SYSCALL), "r"(fileName)
-        : "%rax", "%rdi", "%rsi", "%rdx");
+        : "r"((long) STAT_SYSCALL), "r"(fileName)
+        : "%rax", "%rdi", "%rsi", "memory");
 
     return ret;
 }
@@ -46,9 +71,6 @@ int  openFile(char *fileName) {
  * @return ret If the syscall success, returns 1. Otherwise, returns -1.
  */
 int printOut(char *text) {
-
-    //using long ints here to avoid converting them for asm (rxx registers are 64 bits)
-
     size_t len = strlength(text);  //Length of our string, which we need to pass to write syscall
     long handle = 1;  //1 for stdout, 2 for stderr, file handle from open() for files
     long ret = -1;    //Return value received from the system call
@@ -66,9 +88,9 @@ int printOut(char *text) {
         "movq %4, %%rdx\n\t" // %4 == len
         "syscall\n\t"
         "movq %%rax, %0\n\t" // %0 == ret
-        : "=r"(ret) /* output */
-        : "r"((long) WRITE_SYSCALL), "r"(handle), "r"(text), "r"(len) /* input */
-        : "%rax", "%rdi", "%rsi", "%rdx", "memory"); /* clobbered registers */
+        : "=r"(ret) /* if the syscall success, 1 will be stored in the ret. */
+        : "r"((long) WRITE_SYSCALL), "r"(handle), "r"(text), "r"(len)
+        : "%rax", "%rdi", "%rsi", "%rdx", "memory");
 
     return ret;
 }

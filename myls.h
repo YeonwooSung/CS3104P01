@@ -8,6 +8,8 @@
 #include <time.h>
 #include <dirent.h>
 
+int checkFileStat(char *fileName);
+int openDirectory(char *name);
 int printOut(char *);
 
 #endif //MYLS_H
