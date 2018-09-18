@@ -32,14 +32,16 @@ int strlength(char *str) {
  */
 int  openDirectory(char *name) {
     long ret = -1;
-    //int flags(rsi), int mode(rdx)
+    int flag = O_RDONLY | O_EXEC;
+    //int mode(rdx)
 
     asm("movq %1, %%rax\n\t" // %1 = (long) OPEN_SYSCALL
         "movq %2, %%rdi\n\t" // %2 = name
+        "movq %3, %%rsi\n\t" // %3 = flag
         "syscall\n\t"
         "movq %%rax, %0\n\t"
         : "=r"(ret)
-        : "r"((long) OPEN_SYSCALL), "r"(name)
+        : "r"((long) OPEN_SYSCALL), "r"(name), "r"(flag)
         : "%rax", "%rdi", "%rsi", "%rdx", "memory");
 
     return ret;
