@@ -1,6 +1,8 @@
 #include "myls.h"
 
-#define WRITE_SYSCALL 1
+#define WRITE_SYSCALL 1  //to print out the output message of the ls command
+#define OPEN_SYSCALL 2   //to open the directory
+#define STAT_SYSCALL 4   //to get the file stat of the specific file.
 
 /**
  * The custom strlen function.
@@ -19,13 +21,29 @@ int strlength(char *str) {
     return count;
 }
 
+int  openFile(char *fileName) {
+    long ret = -1;
+    //filename(rdi) flag(rsi) mode(rdx)
+
+    asm("movq %1, %%rax\n\t" // %1 = (long) OPEN_SYSCALL
+        "movq %2, %%rdi\n\t" // %2 = fileName
+        "syscall\n\t"
+        "movq %%rax, %0\n\t"
+        : "=r"(ret)
+        : "r"((long) OPEN_SYSCALL), "r"(fileName)
+        : "%rax", "%rdi", "%rsi", "%rdx");
+
+    return ret;
+}
+
+
 /**
  * This function prints out the given string.
  * This function uses the inline assembly function to make interaction with the kernel more explicit.
  * To implement this function, I reused the given code, which is written by Kasim Terzic.
  *
  * @param text the target text that should be printed out
- * @return ret
+ * @return ret If the syscall success, returns 1. Otherwise, returns -1.
  */
 int printOut(char *text) {
 
