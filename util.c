@@ -45,7 +45,7 @@ int  openDirectory(char *name) {
         "syscall\n\t"
         "movq %%rax, %0\n\t"
         : "=r"(ret)
-        : "r"((long) OPEN_SYSCALL), "r"(name), "r"((long) flag), "r"((long) mode)
+        : "r"((long) OPEN_SYSCALL), "r"(name), "r"((long) flag), "r"((long) mode) //convert the type from int to long for the movq instruction
         : "%rax", "%rdi", "%rsi", "%rdx", "memory");
 
     return ret;
@@ -54,14 +54,15 @@ int  openDirectory(char *name) {
 
 int checkFileStat(char *fileName) {
     long ret = -1;
-    //struct stat *statBuffer(rsi)
+    struct stat *statBuffer = NULL;
 
     asm("movq %1, %%rax\n\t" // %1 = (long) STAT_SYSCALL
         "movq %2, %%rdi\n\t" // %2 = fileName
+        "movq %3, %%rsi\n\t" // %3 = statBuffer
         "syscall\n\t"
         "movq %%rax, %0\n\t"
         : "=r"(ret)
-        : "r"((long) STAT_SYSCALL), "r"(fileName)
+        : "r"((long) STAT_SYSCALL), "r"(fileName), "r"(statBuffer) //covert the type from int to long for the movq instruction
         : "%rax", "%rdi", "%rsi", "memory");
 
     return ret;
