@@ -30,7 +30,7 @@ char *endp = NULL;      //TODO
 
 
 void init_myMalloc() {
-    char *ptr;
+    char *ptr = NULL;
     unsigned long fd = -1;
     unsigned long offset = 0;
 
