@@ -40,7 +40,7 @@ void init_myMalloc() {
         "movq %4, %%rdx\n\t" // %4 == (unsigned long) CUSTOM_PROT
         "movq %5, %%r10\n\t" // %5 == (unsigned long) MMAP_FLAG
         "movq %6, %%r8\n\t"  // %6 == fd
-        "movq %7, %%r9n\t"   // %7 == offset
+        "movq %7, %%r9\n\t"   // %7 == offset
         "syscall\n\t"
         "movq %%rax, %0\n\t" // %0 == ptr
         : "=r"(ptr)          /* if the syscall success, 1 will be stored in the ret. */
