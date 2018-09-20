@@ -26,9 +26,17 @@
 /* The global variables for the custom malloc function */
 char *heap;             //the pointer that points the custom heap
 char *brkp = NULL;      //the pointer that points the custom break of the heap
-char *endp = NULL;      //TODO
+char *endp = NULL;      //the pointer that points the end of the custom heap
+unsigned long total = 0;
+
+/* function prototype */
+int printOut(char *); //the prototype of the printOut function.
 
 
+/**
+ * This function initialises the global variables for the custom malloc function.
+ * The mmap syscall is used to initialise the custom heap memory.
+ */
 void init_myMalloc() {
     char *ptr = NULL;
     unsigned long fd = -1;
@@ -43,11 +51,63 @@ void init_myMalloc() {
         "movq %7, %%r9\n\t"   // %7 == offset
         "syscall\n\t"
         "movq %%rax, %0\n\t" // %0 == ptr
-        : "=r"(ptr)          /* if the syscall success, 1 will be stored in the ret. */
+        : "=r"(ptr)          /* if the syscall success, the memory address of the mapped memory will be stored in the ptr */
         : "r"((long)MMAP_SYSCALL), "r"(NULL), "r"((unsigned long)MAX_HEAP_SIZE), "r"((unsigned long)CUSTOM_PROT), "r"((unsigned long)MMAP_FLAG), "r"(fd), "r"(offset)
         : "%rax", "%rdi", "%rsi", "%rdx", "%r10", "%r8", "%r9", "memory");
     
-    printf("%p\n", ptr);
+    heap = ptr;
+    brkp = ptr;
+    endp = ptr + MAX_HEAP_SIZE;
+}
+
+/**
+ * The aim of this function is to move the break of the custom heap to allocate the memory dynamically.
+ *
+ * To implement this custom sbrk function, I copied some of the codes from the following article.
+ * @reference_url <https://people.kth.se/~johanmon/ose/assignments/maplloc.pdf>
+ */
+void *mysbrk(size_t size) {
+    if (size == 0) {
+        return (void *) brkp;
+    } else if (size < 0) {
+        return NULL;
+    }
+
+    void *free = (void *)brkp;
+
+    brkp += size;
+    if (brkp >= endp) {
+        return NULL;
+    }
+
+    return free;
+}
+
+/**
+ * A simple implementation of memory allocating function.
+ *
+ * @param size the size of the memory that should be allocated.
+ * @return If the sbrk failed, returns NULL. Otherwise, returns p, which is the starting point of the allocated memory.
+ */
+void *mymalloc(size_t size) {
+    void *p = mysbrk(0);
+    void *request = mysbrk(size);
+
+    if (request == ((void *) -1)) {
+        return NULL; //sbrk failed
+    } else {
+        total += size;
+        return p;
+    }
+}
+
+void myfree(void *ptr) {
+    if (ptr < heap || ptr > endp) {
+        char *msg = "This memory address is not allocated by the mymalloc function!\n";
+        printOut(msg);
+    } else {
+        //
+    }
 }
 
 /**
@@ -130,12 +190,6 @@ int printOut(char *text) {
     long handle = 1;              //1 for stdout, 2 for stderr, file handle from open() for files
     long ret = -1;                //Return value received from the system call
 
-    /* 
-     * Using inline assembler(extended assembler syntax), the long way. Here all the registers used are visible.
-     * Note that we have to protect rax etc. in the very last line to stop the gnu compiler
-     * from using them (and thus overwriting our data)
-     * Parameters go to RAX, RDI, RSI, RDX, in that order.
-     */
     asm("movq %1, %%rax\n\t" // %1 == (long) WRITE_SYSCALL
         "movq %2, %%rdi\n\t" // %2 == handle
         "movq %3, %%rsi\n\t" // %3 == text
@@ -149,12 +203,11 @@ int printOut(char *text) {
     return ret;
 }
 
-
 int main(int argc, char **argv) {
-    //check the number of the command line arguments
     if (argc > 1) {
         int i = checkFileStat(argv[1]);
         init_myMalloc();
+        printf("%d\n", i);
     } else {
         char usageMsg[27] = "Usage: ./myls \"file_path\"\n";
         printOut(usageMsg);
