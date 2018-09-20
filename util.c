@@ -56,7 +56,7 @@ int  openDirectory(char *name) {
 
 int checkFileStat(char *fileName) {
     long ret = -1;
-    struct stat *statBuffer;
+    struct stat statBuffer;
 
     asm("movq %1, %%rax\n\t" // %1 = (long) STAT_SYSCALL
         "movq %2, %%rdi\n\t" // %2 = fileName
@@ -64,10 +64,10 @@ int checkFileStat(char *fileName) {
         "syscall\n\t"
         "movq %%rax, %0\n\t"
         : "=r"(ret)
-        : "r"((long) STAT_SYSCALL), "r"(fileName), "r"(statBuffer) //covert the type from int to long for the movq instruction
+        : "r"((long) STAT_SYSCALL), "r"(fileName), "r"(&statBuffer) //covert the type from int to long for the movq instruction
         : "%rax", "%rdi", "%rsi", "memory");
 
-    printf("stat: %d\n", statBuffer->st_uid);
+    printf("%-8d\n",statBuffer.st_uid);
 
     return ret;
 }
