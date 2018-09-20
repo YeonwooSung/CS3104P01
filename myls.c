@@ -23,18 +23,16 @@
 #define MMAP_FLAG (MAP_PRIVATE | MAP_ANONYMOUS)
 
 
-/* The global variables for the custom malloc function */
+/* The global variables for the custom memory allocating function */
 char *heap;             //the pointer that points the custom heap
 char *brkp = NULL;      //the pointer that points the custom break of the heap
 char *endp = NULL;      //the pointer that points the end of the custom heap
-unsigned long total = 0;
 
 /* function prototype */
 int printOut(char *); //the prototype of the printOut function.
 
-
 /**
- * This function initialises the global variables for the custom malloc function.
+ * This function initialises the global variables for the custom memory allocating function.
  * The mmap syscall is used to initialise the custom heap memory.
  */
 void init_myMalloc() {
@@ -83,32 +81,6 @@ void *mysbrk(size_t size) {
     return free;
 }
 
-/**
- * A simple implementation of memory allocating function.
- *
- * @param size the size of the memory that should be allocated.
- * @return If the sbrk failed, returns NULL. Otherwise, returns p, which is the starting point of the allocated memory.
- */
-void *mymalloc(size_t size) {
-    void *p = mysbrk(0);
-    void *request = mysbrk(size);
-
-    if (request == ((void *) -1)) {
-        return NULL; //sbrk failed
-    } else {
-        total += size;
-        return p;
-    }
-}
-
-void myfree(void *ptr) {
-    if (ptr < heap || ptr > endp) {
-        char *msg = "This memory address is not allocated by the mymalloc function!\n";
-        printOut(msg);
-    } else {
-        //
-    }
-}
 
 /**
  * The custom strlen function.
