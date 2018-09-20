@@ -1,11 +1,54 @@
 #include <stdio.h>
-#include "myls.h"
 
-#define WRITE_SYSCALL 1 //to print out the output message of the ls command
-#define OPEN_SYSCALL 2  //to open the directory
-#define STAT_SYSCALL 4  //to get the file stat of the specific file.
+#include <unistd.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/mman.h>
+#include <fcntl.h>
+#include <time.h>
+#include <dirent.h>
 
-#define OPEN_MODE S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH //this will be used for the open syscall
+#define WRITE_SYSCALL 1    //to print out the output message of the ls command
+#define OPEN_SYSCALL 2     //to open the directory
+#define STAT_SYSCALL 4     //to get the file stat of the specific file.
+#define MMAP_SYSCALL 9     //to implement the custom malloc
+#define MUNMAP_SYSCALL 11  //to unmap the dynamically mapped memory
+
+/* mode of the open syscall */
+#define OPEN_MODE (S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH) //this will be used for the open syscall
+
+/* preprocessors for the custom malloc function */
+#define MAX_HEAP_SIZE 268435456 //4 * 1024 * 4096
+#define CUSTOM_PROT (PROT_READ | PROT_WRITE)
+#define MMAP_FLAG (MAP_PRIVATE | MAP_ANONYMOUS)
+
+
+/* The global variables for the custom malloc function */
+char *heap;             //the pointer that points the custom heap
+char *brkp = NULL;      //the pointer that points the custom break of the heap
+char *endp = NULL;      //TODO
+
+
+void init_myMalloc() {
+    char *ptr;
+    unsigned long fd = -1;
+    unsigned long offset = 0;
+
+    asm("movq %1, %%rax\n\t" // %1 == (unsigned long) MMAP_SYSCALL
+        "movq %2, %%rdi\n\t" // %2 == NULL
+        "movq %3, %%rsi\n\t" // %3 == (unsigned long) MAX_HEAP_SIZE
+        "movq %4, %%rdx\n\t" // %4 == (unsigned long) CUSTOM_PROT
+        "movq %5, %%r10\n\t" // %5 == (unsigned long) MMAP_FLAG
+        "movq %6, %%r8\n\t"  // %6 == fd
+        "movq %7, %%r9n\t"   // %7 == offset
+        "syscall\n\t"
+        "movq %%rax, %0\n\t" // %0 == ptr
+        : "=r"(ptr)          /* if the syscall success, 1 will be stored in the ret. */
+        : "r"((long)MMAP_SYSCALL), "r"(NULL), "r"((unsigned long)MAX_HEAP_SIZE), "r"((unsigned long)CUSTOM_PROT), "r"((unsigned long)MMAP_FLAG), "r"(fd), "r"(offset)
+        : "%rax", "%rdi", "%rsi", "%rdx", "%r10", "%r8", "%r9", "memory");
+    
+    printf("%p\n", ptr);
+}
 
 /**
  * The custom strlen function.
@@ -16,8 +59,7 @@
 int strlength(char *str) {
     int count = 0;
 
-    while (*str != '\0')
-    {
+    while (*str != '\0') {
         count += 1;
         str += 1;
     }
@@ -95,7 +137,7 @@ int printOut(char *text) {
      * Parameters go to RAX, RDI, RSI, RDX, in that order.
      */
     asm("movq %1, %%rax\n\t" // %1 == (long) WRITE_SYSCALL
-        "movq %2, %%rdi\n\t" // %1 == handle
+        "movq %2, %%rdi\n\t" // %2 == handle
         "movq %3, %%rsi\n\t" // %3 == text
         "movq %4, %%rdx\n\t" // %4 == len
         "syscall\n\t"
@@ -110,10 +152,9 @@ int printOut(char *text) {
 
 int main(int argc, char **argv) {
     //check the number of the command line arguments
-    if (argc == 2) {
-        //printOut(argv[1]);
+    if (argc > 1) {
         int i = checkFileStat(argv[1]);
-        printf("%d", i);
+        init_myMalloc();
     } else {
         char usageMsg[27] = "Usage: ./myls \"file_path\"\n";
         printOut(usageMsg);
