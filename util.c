@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 #include "myls.h"
 
 #define WRITE_SYSCALL 1  //to print out the output message of the ls command
@@ -54,7 +56,7 @@ int  openDirectory(char *name) {
 
 int checkFileStat(char *fileName) {
     long ret = -1;
-    struct stat *statBuffer = NULL;
+    struct stat *statBuffer;
 
     asm("movq %1, %%rax\n\t" // %1 = (long) STAT_SYSCALL
         "movq %2, %%rdi\n\t" // %2 = fileName
@@ -64,6 +66,8 @@ int checkFileStat(char *fileName) {
         : "=r"(ret)
         : "r"((long) STAT_SYSCALL), "r"(fileName), "r"(statBuffer) //covert the type from int to long for the movq instruction
         : "%rax", "%rdi", "%rsi", "memory");
+
+    printf("stat: %d\n", statBuffer->st_uid);
 
     return ret;
 }
