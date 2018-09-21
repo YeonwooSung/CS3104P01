@@ -1,3 +1,5 @@
+#include <stdio.h> //TODO should remove this line before submit this
+
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -87,13 +89,10 @@ int myUnMap() {
 void *mysbrk(size_t size) {
     if (size == 0) {
         return (void *) brkp;
-    } else if (size < 0) {
-        return NULL;
     }
 
     void *free = (void *)brkp;
-
-    brkp += size;
+    brkp += size;    
     if (brkp >= endp) {
         return NULL;
     }
@@ -186,14 +185,14 @@ int openDirectory(char *name) {
     return ret;
 }
 
-
 /**
  * This function uses the syscall to get the stat of the specific file.
  *
  * @param fileName the name of the target file
+ * @param openFlag to check if the program should call the open syscall
  * @return ret If the syscall success, returns 0. Otherwise, returns -1.
  */
-int checkFileStat(char *fileName) {
+int checkFileStat(char *fileName, char openFlag) {
     long ret = -1;
 
     struct stat statBuffer;
@@ -206,6 +205,20 @@ int checkFileStat(char *fileName) {
         : "=r"(ret)
         : "r"((long)STAT_SYSCALL), "r"(fileName), "r"(&statBuffer) //covert the type from int to long for the movq instruction
         : "%rax", "%rdi", "%rsi", "memory");
+
+    mode_t mode = statBuffer.st_mode; //mode of file
+
+    //use the bitwise operators to check if the current file is a directory and check if the program should open this directory
+    if ( (S_IFDIR & mode) && !openFlag ) {
+        openDirectory(fileName); //open the directory
+    } else {
+        uid_t user = statBuffer.st_uid;        //user id
+        gid_t group = statBuffer.st_gid;       //group id
+        time_t modTime = statBuffer.st_mtime;  //last modified time
+        struct tm *modT = localtime(&modTime); //struct time of the last modified time
+    }
+
+    //TODO at the end of the checkFileStat, move back the brk
 
     return ret;
 }
@@ -241,7 +254,7 @@ int main(int argc, char **argv) {
         initHeap();
 
         for (int i = 1; i < argc; i++) {
-            checkFileStat(argv[i]);
+            checkFileStat(argv[i], 0);
         }
 
         myUnMap(); //unmap the dynamically mapped memory
