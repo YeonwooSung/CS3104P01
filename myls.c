@@ -213,7 +213,7 @@ int openDirectory(char *name) {
  * @param openFlag to check if the program should call the open syscall
  * @return ret If the syscall success, returns 0. Otherwise, returns -1.
  */
-int checkFileStat(char *fileName, char openFlag) {
+int checkFileStat(char *fileName) {
     long ret = -1;
 
     struct stat statBuffer;
@@ -229,14 +229,19 @@ int checkFileStat(char *fileName, char openFlag) {
 
     mode_t mode = statBuffer.st_mode; //mode of file
 
-    //use the bitwise operators to check if the current file is a directory and check if the program should open this directory
-    if ( (S_IFDIR & mode) && !openFlag ) {
+    //use the bitwise operators to check if the current file is a directory
+    if (S_IFDIR & mode) {
         openDirectory(fileName); //open the directory
     } else {
         uid_t user = statBuffer.st_uid;        //user id
         gid_t group = statBuffer.st_gid;       //group id
         time_t modTime = statBuffer.st_mtime;  //last modified time
         struct tm *modT = localtime(&modTime); //struct time of the last modified time
+
+        time_t time;
+        struct tm *now = localtime(&time);     //this pointer points to the time struct which shows the current date time
+
+        //TODO compare the year of modT with now, and print out the suitable output
     }
 
     //TODO at the end of the checkFileStat, move back the brk
@@ -276,7 +281,7 @@ int main(int argc, char **argv) {
 
         int i;
         for (i = 1; i < argc; i++) {
-            checkFileStat(argv[i], 0);
+            checkFileStat(argv[i]);
         }
 
         myUnMap(); //unmap the dynamically mapped memory
