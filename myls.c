@@ -121,6 +121,12 @@ int strlength(char *str) {
     return count;
 }
 
+/**
+ * The aim of this function is to copy the string to the new string.
+ *
+ * @param str the pointer that points the new string
+ * @param s the pointer that points the string that contains the value that should be copied
+ */
 void strcopy(char *str, char *s, int length) {
     for (int i = 0; i < length; i++) {
         *str = *s;
