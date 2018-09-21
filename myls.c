@@ -35,7 +35,7 @@ int printOut(char *); //the prototype of the printOut function.
  * This function initialises the global variables for the custom memory allocating function.
  * The mmap syscall is used to initialise the custom heap memory.
  */
-void init_myMalloc() {
+void initHeap() {
     char *ptr = NULL;
     unsigned long fd = -1;
     unsigned long offset = 0;
@@ -121,6 +121,31 @@ int strlength(char *str) {
     return count;
 }
 
+void strcopy(char *str, char *s, int length) {
+    for (int i = 0; i < length; i++) {
+        *str = *s;
+        str += 1;
+        s += 1;
+    }
+}
+
+char *strconcat(char *str1, char *str2) {
+    int length1 = strlength(str1);
+    int length2 = strlength(str2);
+    int length = length1 + length2;
+
+    char *newStr = (char *) mysbrk(length + 1); //dynamically allocate the memory to concatenate strings
+    char *temp = newStr;
+
+    strcopy(newStr, str1, length1);
+    strcopy(newStr, str2, length2);
+
+    temp += length;
+    *temp = '\0';
+
+    return newStr;
+}
+
 /**
  * This function opens the file by using the syscall.
  * The openDirectory() will be used to open the directory for the ls command.
@@ -199,11 +224,18 @@ int printOut(char *text) {
 
 int main(int argc, char **argv) {
     if (argc > 1) {
-        int i = checkFileStat(argv[1]);
-        init_myMalloc();
-        printf("%d\n", i);
-        int ret = myUnMap();
-        printf("%d\n", ret);
+        initHeap();
+
+        for (int i = 1; i < argc; i++) {
+            checkFileStat(argv[i]);
+        }
+
+        char s1[6] = {'h', 'e', 'l', 'l', 'o', '\0'};
+        char s2[7] = {' ', 'h', 'e', 'l', 'l', 'o', '\0'};
+        char *str = strconcat(s1, s2);
+        printf("%s", str);
+
+        myUnMap(); //unmap the dynamically mapped memory
     } else {
         char usageMsg[27] = "Usage: ./myls \"file_path\"\n";
         printOut(usageMsg);
