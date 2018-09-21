@@ -1,5 +1,3 @@
-#include <stdio.h>
-
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -52,7 +50,7 @@ void initHeap() {
         : "=r"(ptr)          /* if the syscall success, the memory address of the mapped memory will be stored in the ptr */
         : "r"((long)MMAP_SYSCALL), "r"(NULL), "r"((unsigned long)MAX_HEAP_SIZE), "r"((unsigned long)CUSTOM_PROT), "r"((unsigned long)MMAP_FLAG), "r"(fd), "r"(offset)
         : "%rax", "%rdi", "%rsi", "%rdx", "%r10", "%r8", "%r9", "memory");
-    
+
     heap = ptr;
     brkp = ptr;
     endp = ptr + MAX_HEAP_SIZE;
@@ -84,7 +82,7 @@ int myUnMap() {
  * The aim of this function is to move the break of the custom heap to allocate the memory dynamically.
  *
  * To implement this custom sbrk function, I copied some of the codes from the following article.
- * @reference_url <https://people.kth.se/~johanmon/ose/assignments/maplloc.pdf>
+ * @reference <https://people.kth.se/~johanmon/ose/assignments/maplloc.pdf>
  */
 void *mysbrk(size_t size) {
     if (size == 0) {
@@ -126,6 +124,7 @@ int strlength(char *str) {
  *
  * @param str the pointer that points the new string
  * @param s the pointer that points the string that contains the value that should be copied
+ * @param length the length of the string that should be copied
  */
 void strcopy(char *str, char *s, int length) {
     for (int i = 0; i < length; i++) {
@@ -135,6 +134,13 @@ void strcopy(char *str, char *s, int length) {
     }
 }
 
+/**
+ * This function concatenates 2 given strings.
+ *
+ * @param str1 the pointer that points the first string
+ * @param str2 the pointer that points the second string
+ * @return newStr the pointer that points the concatenated string
+ */
 char *strconcat(char *str1, char *str2) {
     int length1 = strlength(str1);
     int length2 = strlength(str2);
@@ -237,11 +243,6 @@ int main(int argc, char **argv) {
         for (int i = 1; i < argc; i++) {
             checkFileStat(argv[i]);
         }
-
-        char s1[6] = {'h', 'e', 'l', 'l', 'o', '\0'};
-        char s2[7] = {' ', 'h', 'e', 'l', 'l', 'o', '\0'};
-        char *str = strconcat(s1, s2);
-        printf("%s", str);
 
         myUnMap(); //unmap the dynamically mapped memory
     } else {
