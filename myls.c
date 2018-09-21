@@ -66,7 +66,7 @@ void init_myMalloc() {
 int myUnMap() {
     //return 0 or -1
     //unsigned long address (rdi), size_t len (rsi)
-    int ret = -1;
+    long ret = -1;
 
     asm("movq %1, %%rax\n\t" // %1 == (long) MUNMAP_SYSCALL
         "movq %2, %%rdi\n\t" // %2 == (unsigned long) heap
