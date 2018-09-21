@@ -132,15 +132,17 @@ void strcopy(char *str, char *s, int length) {
 char *strconcat(char *str1, char *str2) {
     int length1 = strlength(str1);
     int length2 = strlength(str2);
-    int length = length1 + length2;
+    int length = length1 + length2 + 1;
 
-    char *newStr = (char *) mysbrk(length + 1); //dynamically allocate the memory to concatenate strings
+    char *newStr = (char *) mysbrk(length); //dynamically allocate the memory to concatenate strings
     char *temp = newStr;
 
-    strcopy(newStr, str1, length1);
-    strcopy(newStr, str2, length2);
+    strcopy(temp, str1, length1);
+    temp += length1;
 
-    temp += length;
+    strcopy(temp, str2, length2);
+    temp += length2;
+
     *temp = '\0';
 
     return newStr;
