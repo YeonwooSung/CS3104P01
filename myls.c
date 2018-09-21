@@ -40,7 +40,7 @@ void init_myMalloc() {
     unsigned long fd = -1;
     unsigned long offset = 0;
 
-    asm("movq %1, %%rax\n\t" // %1 == (unsigned long) MMAP_SYSCALL
+    asm("movq %1, %%rax\n\t" // %1 == (long) MMAP_SYSCALL
         "movq %2, %%rdi\n\t" // %2 == NULL
         "movq %3, %%rsi\n\t" // %3 == (unsigned long) MAX_HEAP_SIZE
         "movq %4, %%rdx\n\t" // %4 == (unsigned long) CUSTOM_PROT
@@ -56,6 +56,28 @@ void init_myMalloc() {
     heap = ptr;
     brkp = ptr;
     endp = ptr + MAX_HEAP_SIZE;
+}
+
+/**
+ * The aim of this function is to unmap the mapped memory by using the syscall munmap.
+ *
+ * @return ret If the munmap syscall success, returns 0. Otherwise, returns -1.
+ */
+int myUnMap() {
+    //return 0 or -1
+    //unsigned long address (rdi), size_t len (rsi)
+    int ret = -1;
+
+    asm("movq %1, %%rax\n\t" // %1 == (long) MUNMAP_SYSCALL
+        "movq %2, %%rdi\n\t" // %2 == (unsigned long) heap
+        "movq %3, %%rsi\n\t" // %3 == (unsigned long) MAX_HEAP_SIZE
+        "syscall\n\t"
+        "movq %%rax, %0\n\t"
+        : "=r"(ret)
+        : "r"((long)MUNMAP_SYSCALL), "r"((unsigned long) heap), "r"((unsigned long) MAX_HEAP_SIZE)
+        : "%rax", "%rdi", "%rsi", "memory");
+    
+    return ret;
 }
 
 /**
@@ -180,6 +202,8 @@ int main(int argc, char **argv) {
         int i = checkFileStat(argv[1]);
         init_myMalloc();
         printf("%d\n", i);
+        int ret = myUnMap();
+        printf("%d\n", ret);
     } else {
         char usageMsg[27] = "Usage: ./myls \"file_path\"\n";
         printOut(usageMsg);
