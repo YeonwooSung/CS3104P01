@@ -8,11 +8,15 @@
 #include <time.h>
 #include <dirent.h>
 
-#define WRITE_SYSCALL 1    //to print out the output message of the ls command
-#define OPEN_SYSCALL 2     //to open the directory
-#define STAT_SYSCALL 4     //to get the file stat of the specific file.
-#define MMAP_SYSCALL 9     //to implement the custom malloc
-#define MUNMAP_SYSCALL 11  //to unmap the dynamically mapped memory
+/* System call numbers */
+#define WRITE_SYSCALL 1      //to print out the output message of the ls command
+#define OPEN_SYSCALL 2       //to open the directory
+#define STAT_SYSCALL 4       //to get the file stat of the specific file.
+#define MMAP_SYSCALL 9       //to implement the custom malloc
+#define MUNMAP_SYSCALL 11    //to unmap the dynamically mapped memory
+#define GETDENTS_SYSCALL 78  //to get the directory entries
+
+#define GETDENT_BUFFER_SIZE 1024 //this will be used for the getdents syscall
 
 /* mode of the open syscall */
 #define OPEN_MODE (S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH) //this will be used for the open syscall
@@ -159,6 +163,23 @@ char *strconcat(char *str1, char *str2) {
     return newStr;
 }
 
+int getDirectoryEntries(long fd) {
+    long ret = -1;
+    struct linux_dirent *ld;
+
+    asm("movq %1, %%rax\n\t" // %1 = (long) OPEN_SYSCALL
+        "movq %2, %%rdi\n\t" // %2 = fd
+        "movq %3, %%rsi\n\t" // %3 = ld
+        "movq %4, %%rdx\n\t" // %4 = (long) GETDENT_BUFFER_SIZE
+        "syscall\n\t"
+        "movq %%rax, %0\n\t"
+        : "=r"(ret)
+        : "r"((long)GETDENTS_SYSCALL), "r"(fd), "r"(ld), "r"((long)GETDENT_BUFFER_SIZE)
+        : "%rax", "%rdi", "%rsi", "%rdx", "memory");
+
+    return ret;
+}
+
 /**
  * This function opens the file by using the syscall.
  * The openDirectory() will be used to open the directory for the ls command.
@@ -253,7 +274,8 @@ int main(int argc, char **argv) {
     if (argc > 1) {
         initHeap();
 
-        for (int i = 1; i < argc; i++) {
+        int i;
+        for (i = 1; i < argc; i++) {
             checkFileStat(argv[i], 0);
         }
 
