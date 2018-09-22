@@ -28,10 +28,10 @@
 
 /* struct for the getdents syscall */
 struct linux_dirent {
-    long d_ino;
-    off_t d_off;
-    unsigned short d_reclen;
-    char d_name[];
+    long d_ino;                /* Inode number */
+    off_t d_off;               /* Offset to next linux_dirent */
+    unsigned short d_reclen;   /* Length of this linux_dirent */
+    char d_name[];             /* Filename (null-terminated) */
 };
 
 /* The global variables for the custom memory allocating function */
@@ -172,7 +172,9 @@ char *strconcat(char *str1, char *str2) {
 }
 
 /**
- * This function uses the getdents system call to read the opened directory, and check the file stats of all files in this directory.
+ * This function is a wrapper function of the getdents system call.
+ * The system call getdents() reads several linux_dirent structures from
+ * the directory referred to by the open file descriptor into the buffer.
  *
  * @param fd the file descriptor of the target directory
  */
@@ -282,9 +284,9 @@ int checkFileStat(char *fileName, char openFlag) {
 
         //TODO compare the year of modT with now, and print out the suitable output
         printf("fileStat: %s\n", fileName);
-    }
 
-    //TODO at the end of the checkFileStat, move back the brk
+        //TODO at the end of the checkFileStat, move back the brk
+    }
 
     return ret;
 }
