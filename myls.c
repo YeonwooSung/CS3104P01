@@ -16,7 +16,7 @@
 #define MUNMAP_SYSCALL 11    //to unmap the dynamically mapped memory
 #define GETDENTS_SYSCALL 78  //to get the directory entries
 
-#define GETDENT_BUFFER_SIZE 1024 //this will be used for the getdents syscall
+#define GETDENT_BUFFER_SIZE 8192 //this will be used for the getdents syscall
 
 /* mode of the open syscall */
 #define OPEN_MODE (S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH) //this will be used for the open syscall
@@ -26,6 +26,13 @@
 #define CUSTOM_PROT (PROT_READ | PROT_WRITE)
 #define MMAP_FLAG (MAP_PRIVATE | MAP_ANONYMOUS)
 
+/* struct for the getdents syscall */
+struct linux_dirent {
+    long d_ino;
+    off_t d_off;
+    unsigned short d_reclen;
+    char d_name[];
+};
 
 /* The global variables for the custom memory allocating function */
 char *heap;             //the pointer that points the custom heap
@@ -33,7 +40,9 @@ char *brkp = NULL;      //the pointer that points the custom break of the heap
 char *endp = NULL;      //the pointer that points the end of the custom heap
 
 /* function prototype */
-int printOut(char *); //the prototype of the printOut function.
+int printOut(char *);             //a wrapper function of write() system call.
+int checkFileStat(char *, char);  //a wrapper function of stat() system call.
+int openDirectory(char *);        //a wrapper function of open() system call.
 
 /**
  * This function initialises the global variables for the custom memory allocating function.
@@ -63,6 +72,7 @@ void initHeap() {
 }
 
 /**
+ * This function is a wrapper function of the munmap system call.
  * The aim of this function is to unmap the mapped memory by using the syscall munmap.
  *
  * @return ret If the munmap syscall success, returns 0. Otherwise, returns -1.
@@ -78,7 +88,7 @@ int myUnMap() {
         : "=r"(ret)
         : "r"((long)MUNMAP_SYSCALL), "r"((unsigned long) heap), "r"((unsigned long) MAX_HEAP_SIZE)
         : "%rax", "%rdi", "%rsi", "memory");
-    
+
     return ret;
 }
 
@@ -169,6 +179,7 @@ char *strconcat(char *str1, char *str2) {
 void getDirectoryEntries(long fd) {
     long nread = -1;
     int bpos;
+    char d_type, buf[GETDENT_BUFFER_SIZE];
     struct linux_dirent *ld;
 
     for (;;) {
@@ -179,25 +190,31 @@ void getDirectoryEntries(long fd) {
         */
         asm("movq %1, %%rax\n\t" // %1 = (long) OPEN_SYSCALL
             "movq %2, %%rdi\n\t" // %2 = fd
-            "movq %3, %%rsi\n\t" // %3 = ld
+            "movq %3, %%rsi\n\t" // %3 = buf
             "movq %4, %%rdx\n\t" // %4 = (long) GETDENT_BUFFER_SIZE
             "syscall\n\t"
             "movq %%rax, %0\n\t"
             : "=r"(nread)
-            : "r"((long)GETDENTS_SYSCALL), "r"(fd), "r"(ld), "r"((long)GETDENT_BUFFER_SIZE)
+            : "r"((long)GETDENTS_SYSCALL), "r"(fd), "r"(buf), "r"((unsigned long)GETDENT_BUFFER_SIZE)
             : "%rax", "%rdi", "%rsi", "%rdx", "memory");
 
         if (nread == -1) {
             char errorMsg[40] = "Error occurred in the getdents syscall\n";
             printOut(errorMsg); //print out the error message
             break;
-        } else if (nread == 0) { //check the getdents syscall is on the end of the directory
+        } else if (nread == 0) { //check if the getdents syscall is on the end of the directory
             break;
         }
 
-        printf("--------------- nread=%ld ---------------\n", nread);
+        for (bpos = 0; bpos < nread;) {
+            //TODO check the file name to ignore "." and ".."
+            ld = (struct linux_dirent *)(buf + bpos);
 
-        //TODO iterate the linux_dirent list, and call the checkFileStat
+            checkFileStat(ld->d_name, 0);
+
+            bpos += ld->d_reclen;
+        }
+
     }
 }
 
@@ -264,6 +281,7 @@ int checkFileStat(char *fileName, char openFlag) {
         struct tm *now = localtime(&time);     //this pointer points to the time struct which shows the current date time
 
         //TODO compare the year of modT with now, and print out the suitable output
+        printf("fileStat: %s\n", fileName);
     }
 
     //TODO at the end of the checkFileStat, move back the brk
