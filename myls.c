@@ -165,25 +165,40 @@ char *strconcat(char *str1, char *str2) {
  * This function uses the getdents system call to read the opened directory, and check the file stats of all files in this directory.
  *
  * @param fd the file descriptor of the target directory
- * @return ret If the system call success, returns the number of bytes read. On end of directory, returns 0. Otherwise, returns -1.
  */
-int getDirectoryEntries(long fd) {
-    long ret = -1;
+void getDirectoryEntries(long fd) {
+    long nread = -1;
+    int bpos;
     struct linux_dirent *ld;
 
-    asm("movq %1, %%rax\n\t" // %1 = (long) OPEN_SYSCALL
-        "movq %2, %%rdi\n\t" // %2 = fd
-        "movq %3, %%rsi\n\t" // %3 = ld
-        "movq %4, %%rdx\n\t" // %4 = (long) GETDENT_BUFFER_SIZE
-        "syscall\n\t"
-        "movq %%rax, %0\n\t"
-        : "=r"(ret)
-        : "r"((long)GETDENTS_SYSCALL), "r"(fd), "r"(ld), "r"((long)GETDENT_BUFFER_SIZE)
-        : "%rax", "%rdi", "%rsi", "%rdx", "memory");
+    for (;;) {
+        /* 
+        * If the system call success, the getdents syscall returns the number of bytes read. 
+        * On end of directory, the getdents syscall returns 0. 
+        * Otherwise, it returns -1.
+        */
+        asm("movq %1, %%rax\n\t" // %1 = (long) OPEN_SYSCALL
+            "movq %2, %%rdi\n\t" // %2 = fd
+            "movq %3, %%rsi\n\t" // %3 = ld
+            "movq %4, %%rdx\n\t" // %4 = (long) GETDENT_BUFFER_SIZE
+            "syscall\n\t"
+            "movq %%rax, %0\n\t"
+            : "=r"(nread)
+            : "r"((long)GETDENTS_SYSCALL), "r"(fd), "r"(ld), "r"((long)GETDENT_BUFFER_SIZE)
+            : "%rax", "%rdi", "%rsi", "%rdx", "memory");
 
-    //TODO iterate the linux_dirent list, and call the checkFileStat function
+        if (nread == -1) {
+            char errorMsg[40] = "Error occurred in the getdents syscall\n";
+            printOut(errorMsg); //print out the error message
+            break;
+        } else if (nread == 0) { //check the getdents syscall is on the end of the directory
+            break;
+        }
 
-    return ret;
+        printf("--------------- nread=%ld ---------------\n", nread);
+
+        //TODO iterate the linux_dirent list, and call the checkFileStat
+    }
 }
 
 /**
