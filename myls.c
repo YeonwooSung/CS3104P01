@@ -68,8 +68,6 @@ void initHeap() {
  * @return ret If the munmap syscall success, returns 0. Otherwise, returns -1.
  */
 int myUnMap() {
-    //return 0 or -1
-    //unsigned long address (rdi), size_t len (rsi)
     long ret = -1;
 
     asm("movq %1, %%rax\n\t" // %1 == (long) MUNMAP_SYSCALL
@@ -163,6 +161,12 @@ char *strconcat(char *str1, char *str2) {
     return newStr;
 }
 
+/**
+ * This function uses the getdents system call to read the opened directory, and check the file stats of all files in this directory.
+ *
+ * @param fd the file descriptor of the target directory
+ * @return ret If the system call success, returns the number of bytes read. On end of directory, returns 0. Otherwise, returns -1.
+ */
 int getDirectoryEntries(long fd) {
     long ret = -1;
     struct linux_dirent *ld;
@@ -176,6 +180,8 @@ int getDirectoryEntries(long fd) {
         : "=r"(ret)
         : "r"((long)GETDENTS_SYSCALL), "r"(fd), "r"(ld), "r"((long)GETDENT_BUFFER_SIZE)
         : "%rax", "%rdi", "%rsi", "%rdx", "memory");
+
+    //TODO iterate the linux_dirent list, and call the checkFileStat function
 
     return ret;
 }
@@ -213,7 +219,7 @@ int openDirectory(char *name) {
  * @param openFlag to check if the program should call the open syscall
  * @return ret If the syscall success, returns 0. Otherwise, returns -1.
  */
-int checkFileStat(char *fileName) {
+int checkFileStat(char *fileName, char openFlag) {
     long ret = -1;
 
     struct stat statBuffer;
@@ -229,8 +235,8 @@ int checkFileStat(char *fileName) {
 
     mode_t mode = statBuffer.st_mode; //mode of file
 
-    //use the bitwise operators to check if the current file is a directory
-    if (S_IFDIR & mode) {
+    //use the bitwise operators to check if the current file is a directory and check if the program should call the open syscall
+    if ( (S_IFDIR & mode) && openFlag) {
         openDirectory(fileName); //open the directory
     } else {
         uid_t user = statBuffer.st_uid;        //user id
@@ -281,7 +287,7 @@ int main(int argc, char **argv) {
 
         int i;
         for (i = 1; i < argc; i++) {
-            checkFileStat(argv[i]);
+            checkFileStat(argv[i], 1);
         }
 
         myUnMap(); //unmap the dynamically mapped memory
