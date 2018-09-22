@@ -252,7 +252,8 @@ int checkFileStat(char *fileName, char openFlag) {
 
     //use the bitwise operators to check if the current file is a directory and check if the program should call the open syscall
     if ( (S_IFDIR & mode) && openFlag) {
-        openDirectory(fileName); //open the directory
+        int fd = openDirectory(fileName); //open the directory
+        getDirectoryEntries(fd);
     } else {
         uid_t user = statBuffer.st_uid;        //user id
         gid_t group = statBuffer.st_gid;       //group id
