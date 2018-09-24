@@ -172,6 +172,28 @@ char *strconcat(char *str1, char *str2) {
 }
 
 /**
+ * This function compares the string pointed by str1 to the string pointed by str2.
+ *
+ * @param str1 the pointer that points to the first string
+ * @param str2 the pointer that points to the second string
+ * @return If the return value < 0 then it indicates str1 is less than str2
+ *         If the return value > 0 then it indicates str2 is less than str1
+ *         If the return value = 0 then it indicates str1 is equal to str2
+ */
+char strcompare(const char *str1, const char *str2) {
+    int i = 0;
+    int j = 0;
+
+    while (str1[i] != '\0') {
+        if (str1[i++] != str2[j++]) {
+            break;
+        }
+    }
+
+    return (str1[i] - str2[j]);
+}
+
+/**
  * This function is a wrapper function of the getdents system call.
  * The system call getdents() reads several linux_dirent structures from
  * the directory referred to by the open file descriptor into the buffer.
@@ -209,10 +231,12 @@ void getDirectoryEntries(long fd) {
         }
 
         for (bpos = 0; bpos < nread;) {
-            //TODO check the file name to ignore "." and ".."
             ld = (struct linux_dirent *)(buf + bpos);
 
-            checkFileStat(ld->d_name, 0);
+            //to ignore the current working directory and the parent directory, check if the file name is "." or "..".
+            if (strcompare(ld->d_name, ".") != 0 && strcompare(ld->d_name, "..") != 0) {
+                checkFileStat(ld->d_name, 0);
+            }
 
             bpos += ld->d_reclen;
         }
