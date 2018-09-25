@@ -358,10 +358,7 @@ int checkFileStat(char *fileName, char openFlag) {
         int hour = modT->tm_hour;
         int min = modT->tm_min;
 
-        time_t time;
-        struct tm *now = localtime(&time);
-
-        printf("time issue: %s\n", asctime(now));
+        printf("time issue: %s\n", asctime(modT));
 
         char *str = (char *)mysbrk(14);
         char *temp = str;
