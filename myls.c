@@ -313,7 +313,7 @@ int convertNumToStr(char *str, int num) {
         num /= 10;
         i += 1;
     }
-    printf("convertNumToStr: %d", num);
+    printf("convertNumToStr: %d\n", num);
     return i;
 }
 
@@ -352,52 +352,62 @@ int checkFileStat(char *fileName, char openFlag) {
 
         struct tm *modT = localtime(&modTime); //struct time of the last modified time
 
+        int year = modT->tm_year;
+        int month = modT->tm_mon;
+        int day = modT->tm_mday;
+        int hour = modT->tm_hour;
+        int min = modT->tm_min;
+
+        time_t time;
+        struct tm *now = localtime(&time);
+
+        printf("time issue: %s\n", asctime(now));
+
         char *str = (char *)mysbrk(14);
         char *temp = str;
         *(str + 13) = '\0';
 
-        if (modT->tm_mday < 10) {
+        if (day < 10) {
             *str = ' ';
             temp += 1;
         }
-        printf("%s\n", asctime(modT));
-        printf("%d %d %d\n", modT->tm_hour, modT->tm_mday, modT->tm_mon);
-        convertNumToStr(temp, modT->tm_mday);
+
+        convertNumToStr(temp, day); //convert the type of the day of the month from number to string
 
         temp += 2;
         *temp++ = ' ';
 
-        convertMonthToStr(modT->tm_mon, temp);
+        convertMonthToStr(month, temp); //convert the type of the month from number to string
 
         temp += 3;
         *temp++ = ' ';
 
-        if (modT->tm_year != 2018) {
+        if (year != 2018) {
             *temp++ = ' ';
-            convertNumToStr(temp, modT->tm_year);
+            convertNumToStr(temp, year); //convert the type of the year from number to string
             temp += 4;
             *temp++ = ' ';
             *temp = '\0';
         } else {
             //check whether the value of the hour of the last modified time is less than 10 or not
-            if (modT->tm_hour < 10) {
+            if (hour < 10) {
                 //if so, append 0 in front of the time string.
                 *temp++ = '0';
-                convertNumToStr(temp++, modT->tm_hour);
+                convertNumToStr(temp++, hour); //convert the type of the hour from number to string
             } else {
-                convertNumToStr(temp, modT->tm_hour);
+                convertNumToStr(temp, hour); //convert the type of the hour from number to string
                 temp += 2;
             }
 
             *temp++ = ':';
 
             //check whether the value of the minute of the last modified time is less than 10 or not
-            if (modT->tm_min < 10) {
+            if (min < 10) {
                 //if so, append 0 in front of the time string.
                 *temp++ = '0';
-                convertNumToStr(temp++, modT->tm_min);
+                convertNumToStr(temp++, min); //convert the type of the minute from number to string
             } else {
-                convertNumToStr(temp, modT->tm_min);
+                convertNumToStr(temp, min); //convert the type of the minute from number to string
                 temp += 2;
             }
 
@@ -406,8 +416,9 @@ int checkFileStat(char *fileName, char openFlag) {
         }
 
         currentNode->modTime = str;
-        //TODO compare the year of modT with now, and print out the suitable output
-        printf("fileStat: %s\n", fileName);
+        int length = strlength(fileName);
+        currentNode->fileName = (char *)mysbrk(length + 1);
+        strcopy(currentNode->fileName, fileName, length);
     }
 
     struct fileStat *newNode = (struct fileStat *) mysbrk(sizeof(struct fileStat));
