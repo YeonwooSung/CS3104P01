@@ -350,9 +350,7 @@ int checkFileStat(char *fileName, char openFlag) {
         gid_t group = statBuffer.st_gid;       //group id
         time_t modTime = statBuffer.st_mtime;  //last modified time
 
-        time_t time;
         struct tm *modT = localtime(&modTime); //struct time of the last modified time
-        struct tm *now = localtime(&time);     //this pointer points to the time struct which shows the current date time
 
         char *str = (char *)mysbrk(14);
         char *temp = str;
@@ -374,7 +372,7 @@ int checkFileStat(char *fileName, char openFlag) {
         temp += 3;
         *temp++ = ' ';
 
-        if (modT->tm_year != now->tm_year) {
+        if (modT->tm_year != 2018) {
             *temp++ = ' ';
             convertNumToStr(temp, modT->tm_year);
             temp += 4;
