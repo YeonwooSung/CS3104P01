@@ -17,13 +17,14 @@
 #define GETDENTS_SYSCALL 78  //to get the directory entries
 #define TIME_SYSCALL 201     //to get the current time
 
+/* The buffer size for the getdents syscall */
 #define GETDENT_BUFFER_SIZE 8192 //this will be used for the getdents syscall
 
 /* mode of the open syscall */
 #define OPEN_MODE (S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH) //this will be used for the open syscall
 
 /* preprocessors for the custom malloc function */
-#define MAX_HEAP_SIZE 268435456 //4 * 1024 * 4096
+#define MAX_HEAP_SIZE 4194304 //1024 * 4096
 #define CUSTOM_PROT (PROT_READ | PROT_WRITE)
 #define MMAP_FLAG (MAP_PRIVATE | MAP_ANONYMOUS)
 
@@ -38,6 +39,9 @@ struct linux_dirent {
 /* struct to store the file stat strings */
 struct fileStat {
     char *fileInfo; // file permission, number of hard links, user id, group id
+    char *link;     // the number of hard links
+    char *uid;      // the user id
+    char *gid;      // the group id
     char *modTime;  // the last modified time
     char *fileName; // the name of the file
     struct fileStat *next; // pointer that points to the next node
@@ -51,8 +55,11 @@ char *endp = NULL;      //the pointer that points the end of the custom heap
 /* The global variables that will be used for printing out the file stat with a suitable length */
 struct fileStat *fs = NULL;
 struct fileStat *currentNode = NULL;
-char lengthOfFileSize = 0;
-int currentYear;
+char lengthOfFileSize = 0;   //maximum digits of the file size
+char lengthOfLink = 0;       //maximum digits of the number of hard links
+char lengthOfUID = 0;        //maximum digits of the user id
+char lengthOfGID = 0;        //maximum digits of the group id
+int currentYear;             //the time as the number of years since 1900
 
 /* function prototype */
 int printOut(char *);             //a wrapper function of write() system call.
@@ -309,6 +316,22 @@ void convertMonthToStr(int month, char *str) {
 }
 
 /**
+ * The aim of this funciton is to check the digits of the given number.
+ * @param num the number to check the digits
+ * @return i ((the number of digits) - 1)
+ */
+int checkDigits(int num) {
+    int i = 0, j = 10;
+
+    while (j < num) {
+        j *= 10;
+        i += 1;
+    }
+
+    return i;
+}
+
+/**
  * This function converts the type of the given integer from in to string.
  *
  * @param str the pointer points to the string
@@ -316,21 +339,87 @@ void convertMonthToStr(int month, char *str) {
  * @return i the digits of the given number
  */
 int convertNumToStr(char *str, int num) {
-    int i = 0, j = 10, k= 0;
-
-    while (j < num) { //use the while loop to check the digits of the given integer
-        j *= 10;
-        k += 1;
-    }
+    int i = 0, j = checkDigits(num);
 
     while (num) {
-        *(str + k) = (char) (num % 10) + '0';
+        *(str + j) = (char) (num % 10) + '0';
         num /= 10;
         i += 1;
-        k -= 1;
+        j -= 1;
     }
 
     return i;
+}
+
+/**
+ * This function checks the file permission of the particular file and convert the file permission to the string.
+ *
+ * @param fp the pointer that points to the character array
+ * @param mode the variable that shows the file permission of the specific file. 
+ */
+void checkFilePermission(char *fp, mode_t mode) {
+    if (mode & S_IFDIR) {
+        fp[0] = 'd';
+    } else {
+        fp[0] = '_';
+    }
+
+    if (mode & S_IRUSR) {
+        fp[1] = 'r';
+    } else {
+        fp[1] = '_';
+    }
+
+    if (mode & S_IWUSR) {
+        fp[2] = 'w';
+    } else {
+        fp[2] = '_';
+    }
+
+    if (mode & S_IXUSR) {
+        fp[3] = 'x';
+    } else {
+        fp[3] = '_';
+    }
+
+    if (mode & S_IRGRP) {
+        fp[4] = 'r';
+    } else {
+        fp[4] = '_';
+    }
+
+    if (mode & S_IWGRP) {
+        fp[5] = 'w';
+    } else {
+        fp[5] = '_';
+    }
+
+    if (mode & S_IXGRP) {
+        fp[6] = 'x';
+    } else {
+        fp[6] = '_';
+    }
+
+    if (mode & S_IROTH) {
+        fp[7] = 'r';
+    } else {
+        fp[7] = '_';
+    }
+
+    if (mode & S_IWGRP) {
+        fp[8] = 'w';
+    } else {
+        fp[8] = '_';
+    }
+
+    if (mode & S_IXOTH) {
+        fp[9] = 'x';
+    } else {
+        fp[9] = '_';
+    }
+
+    fp[10] = ' ';
+    fp[11] = '\0';
 }
 
 /**
@@ -370,7 +459,6 @@ int checkFileStat(char *fileName, char openFlag) {
 
         char *str = (char *)mysbrk(14);
         char *temp = str;
-        *(str + 13) = '\0';
 
         if (modT->tm_mday < 10) {
             *str = ' ';
@@ -427,7 +515,27 @@ int checkFileStat(char *fileName, char openFlag) {
         currentNode->fileName = (char *)mysbrk(length + 1);
         strcopy(currentNode->fileName, fileName, length); //copy the file name to the fileName field of the current file stat node.
 
-        //TODO get the fileInfo for the struct fileStat
+        //TODO get the number of hard link for the struct fileStat
+        char fp[12];
+        checkFilePermission(fp, mode);
+        currentNode->fileInfo = (char *) mysbrk(12);
+        strcopy(currentNode->fileInfo, fp, 11);
+
+        int digits_uid = checkDigits(user) + 1;
+        int digits_gid = checkDigits(group) + 1;
+
+        if (digits_gid > lengthOfGID) lengthOfGID = digits_gid;
+        if (digits_uid > lengthOfUID) lengthOfUID = digits_uid;
+
+        char *str_uid = (char *) mysbrk(digits_uid + 1);
+        convertNumToStr(str_uid, user);
+        *(str_uid + digits_uid - 1) = '\0';
+        currentNode->uid = str_uid;
+
+        char *str_gid = (char *) mysbrk(digits_gid + 1);
+        convertNumToStr(str_gid, group);
+        *(str_gid + digits_gid - 1) = '\0';
+        currentNode->gid = str_gid;
     }
 
     struct fileStat *newNode = (struct fileStat *) mysbrk(sizeof(struct fileStat));
@@ -498,7 +606,7 @@ int main(int argc, char **argv) {
             currentNode = fs;
 
             checkFileStat(argv[i], 1);
-            
+
             brkp = heap; // move the break to the starting point of the heap to free the allocated memory
         }
 
