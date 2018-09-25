@@ -307,13 +307,20 @@ void convertMonthToStr(int month, char *str) {
 }
 
 int convertNumToStr(char *str, int num) {
-    int i = 0;
-    while (num > 0) {
-        *str++ = (char) ((num % 10) + 48);
+    int i = 0, j = 10, k= 0;
+
+    while (j < num) {
+        j *= 10;
+        k += 1;
+    }
+
+    while (num) {
+        *(str + k) = (char) (num % 10) + '0';
         num /= 10;
         i += 1;
+        k -= 1;
     }
-    printf("convertNumToStr: %d\n", num);
+
     return i;
 }
 
