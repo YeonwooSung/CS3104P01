@@ -34,10 +34,23 @@ struct linux_dirent {
     char d_name[];             /* Filename (null-terminated) */
 };
 
+/* struct to store the file stat strings */
+struct fileStat {
+    char *fileInfo; // file permission, number of hard links, user id, group id
+    char *modTime;  // the last modified time
+    char *fileName; // the name of the file
+    fileStat *next; // pointer that points to the next node
+};
+
 /* The global variables for the custom memory allocating function */
 char *heap;             //the pointer that points the custom heap
 char *brkp = NULL;      //the pointer that points the custom break of the heap
 char *endp = NULL;      //the pointer that points the end of the custom heap
+
+/* The global variables that will be used for printing out the file stat with a suitable length */
+struct fileStat *fs = NULL;
+struct fileStat *currentNode = NULL;
+char lengthOfFileSize = 0;
 
 /* function prototype */
 int printOut(char *);             //a wrapper function of write() system call.
@@ -137,7 +150,7 @@ int strlength(char *str) {
  * @param s the pointer that points the string that contains the value that should be copied
  * @param length the length of the string that should be copied
  */
-void strcopy(char *str, char *s, int length) {
+void strcopy(char *str, const char *s, int length) {
     for (int i = 0; i < length; i++) {
         *str = *s;
         str += 1;
@@ -248,6 +261,119 @@ int openDirectory(char *name) {
 }
 
 /**
+ * This function converts the month from integer to string, and copies that string to the given char pointer.
+ *
+ * @param month From 0 for January to 11 for December
+ * @param str the pointer that points to the new string.
+ */
+void convertMonthToStr(int month, char *str) {
+    switch (month) {
+        case 0 : 
+            strcopy(str, "Jan", 3);
+            break;
+        case 1 : 
+            strcopy(str, "Feb", 3);
+            break;
+        case 2:
+            strcopy(str, "Mar", 3);
+            break;
+        case 3:
+            strcopy(str, "Apr", 3);
+            break;
+        case 4:
+            strcopy(str, "May", 3);
+            break;
+        case 5:
+            strcopy(str, "Jun", 3);
+            break;
+        case 6:
+            strcopy(str, "Jul", 3);
+            break;
+        case 7:
+            strcopy(str, "Aug", 3);
+            break;
+        case 8:
+            strcopy(str, "Sep", 3);
+            break;
+        case 9:
+            strcopy(str, "Oct", 3);
+            break;
+        case 10:
+            strcopy(str, "Nov", 3);
+            break;
+        case 11:
+            strcopy(str, "Dec", 3);
+    }
+}
+
+int convertNumToStr(char *str, int num) {
+    int i = 0;
+    while (num > 0) {
+        *str++ = (char) (num % 10);
+        num /= 10;
+        i += 1;
+    }
+    return i;
+}
+
+char *checkModifiedTime(struct tm *modT, struct tm *now) {
+    char *str = (char *) mysbrk(14);
+    char *temp = str;
+    *(str + 13) = '\0';
+
+    if (modT->tm_mday < 10) {
+        *str = ' ';
+        temp += 1;
+    }
+    convertNumToStr(temp, modT->tm_mday);
+
+    temp += 2;
+    *temp++ = ' ';
+    
+    convertMonthToStr(modT->tm_mon, temp);
+
+    temp += 3;
+    *temp++ = ' ';
+
+    if (modT->tm_year != now->tm_year) {
+        *temp++ = ' ';
+        convertNumToStr(temp, modT->tm_year);
+        temp += 4;
+        *temp++ = ' ';
+        *temp = '\0';
+    } else {
+        //check whether the value of the hour of the last modified time is less than 10 or not
+        if (modT->tm_hour < 10) {
+            //if so, append 0 in front of the time string.
+            *temp++ = '0';
+            convertNumToStr(temp++, modT->tm_hour);
+        } else {
+            convertNumToStr(temp, modT->tm_hour);
+            temp += 2;
+        }
+
+        *temp++ = ':';
+
+        //check whether the value of the minute of the last modified time is less than 10 or not
+        if (modT->tm_min < 10) {
+            //if so, append 0 in front of the time string.
+            *temp++ = '0';
+            convertNumToStr(temp++, modT->tm_min);
+        } else {
+            convertNumToStr(temp, modT->tm_min);
+            temp += 2;
+        }
+
+        *temp++ = ' ';
+        *temp = '\0';
+    }
+
+    printf("checkModifiedTime: %s\n", str);
+
+    return str;
+}
+
+/**
  * This function uses the syscall to get the stat of the specific file.
  *
  * @param fileName the name of the target file
@@ -275,6 +401,7 @@ int checkFileStat(char *fileName, char openFlag) {
         int fd = openDirectory(fileName); //open the directory
         getDirectoryEntries(fd);
     } else {
+
         uid_t user = statBuffer.st_uid;        //user id
         gid_t group = statBuffer.st_gid;       //group id
         time_t modTime = statBuffer.st_mtime;  //last modified time
@@ -283,11 +410,14 @@ int checkFileStat(char *fileName, char openFlag) {
         time_t time;
         struct tm *now = localtime(&time);     //this pointer points to the time struct which shows the current date time
 
+        currentNode->modTime = checkModifiedTime(modT, now);
         //TODO compare the year of modT with now, and print out the suitable output
         printf("fileStat: %s\n", fileName);
-
-        //TODO at the end of the checkFileStat, move back the brk
     }
+
+    struct fileStat *newNode = (struct fileStat *) mysbrk(sizeof(struct fileStat));
+    currentNode->next = newNode;
+    currentNode = newNode;
 
     return ret;
 }
@@ -324,10 +454,15 @@ int main(int argc, char **argv) {
 
         int i;
         for (i = 1; i < argc; i++) {
+            fs = (struct fileStat *) mysbrk(sizeof(struct fileStat)); // allocate the memory for the linked list that stores the file stat.
+            currentNode = fs;
+
             checkFileStat(argv[i], 1);
+            
+            brkp = heap; // move the break to the starting point of the heap to free the allocated memory
         }
 
-        myUnMap(); //unmap the dynamically mapped memory
+        myUnMap(); // unmap the dynamically mapped memory
     } else {
         char usageMsg[27] = "Usage: ./myls \"file_path\"\n";
         printOut(usageMsg);
