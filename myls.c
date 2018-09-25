@@ -51,6 +51,7 @@ char *endp = NULL;      //the pointer that points the end of the custom heap
 struct fileStat *fs = NULL;
 struct fileStat *currentNode = NULL;
 char lengthOfFileSize = 0;
+int currentYear;
 
 /* function prototype */
 int printOut(char *);             //a wrapper function of write() system call.
@@ -384,9 +385,8 @@ int checkFileStat(char *fileName, char openFlag) {
 
         temp += 3;
         *temp++ = ' ';
-        printf("%d\n", modT->tm_year);
 
-        if (modT->tm_year != 118) {
+        if (modT->tm_year != 118) { //TODO get the current local time and replace the 118
             *temp++ = ' ';
             convertNumToStr(temp, (modT->tm_year + 1900)); //convert the type of the year from number to string
             temp += 4;
@@ -420,10 +420,10 @@ int checkFileStat(char *fileName, char openFlag) {
         }
 
         currentNode->modTime = str;
-        printf("%s\n", str);
+
         int length = strlength(fileName);
         currentNode->fileName = (char *)mysbrk(length + 1);
-        strcopy(currentNode->fileName, fileName, length);
+        strcopy(currentNode->fileName, fileName, length); //copy the file name to the fileName field of the current file stat node.
     }
 
     struct fileStat *newNode = (struct fileStat *) mysbrk(sizeof(struct fileStat));
@@ -462,6 +462,11 @@ int printOut(char *text) {
 int main(int argc, char **argv) {
     if (argc > 1) {
         initHeap();
+
+        time_t time;
+        struct tm *now = localtime(&time);
+        currentYear = now->tm_year;
+        printf("currentYear in main: %d\n", currentYear);
 
         int i;
         for (i = 1; i < argc; i++) {
