@@ -309,7 +309,7 @@ void convertMonthToStr(int month, char *str) {
 int convertNumToStr(char *str, int num) {
     int i = 0;
     while (num > 0) {
-        *str++ = (char) (num % 10);
+        *str++ = (char) ((num % 10) + 48);
         num /= 10;
         i += 1;
     }
