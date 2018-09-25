@@ -352,59 +352,53 @@ int checkFileStat(char *fileName, char openFlag) {
 
         struct tm *modT = localtime(&modTime); //struct time of the last modified time
 
-        int year = modT->tm_year;
-        int month = modT->tm_mon;
-        int day = modT->tm_mday;
-        int hour = modT->tm_hour;
-        int min = modT->tm_min;
-
         printf("time issue: %s\n", asctime(modT));
 
         char *str = (char *)mysbrk(14);
         char *temp = str;
         *(str + 13) = '\0';
 
-        if (day < 10) {
+        if (modT->tm_mday < 10) {
             *str = ' ';
             temp += 1;
         }
 
-        convertNumToStr(temp, day); //convert the type of the day of the month from number to string
+        convertNumToStr(temp, modT->tm_mday); //convert the type of the day of the month from number to string
 
         temp += 2;
         *temp++ = ' ';
 
-        convertMonthToStr(month, temp); //convert the type of the month from number to string
+        convertMonthToStr(modT->tm_mon, temp); //convert the type of the month from number to string
 
         temp += 3;
         *temp++ = ' ';
 
-        if (year != 2018) {
+        if (modT->tm_year != 2018) {
             *temp++ = ' ';
-            convertNumToStr(temp, year); //convert the type of the year from number to string
+            convertNumToStr(temp, modT->tm_year); //convert the type of the year from number to string
             temp += 4;
             *temp++ = ' ';
             *temp = '\0';
         } else {
             //check whether the value of the hour of the last modified time is less than 10 or not
-            if (hour < 10) {
+            if (modT->tm_hour < 10) {
                 //if so, append 0 in front of the time string.
                 *temp++ = '0';
-                convertNumToStr(temp++, hour); //convert the type of the hour from number to string
+                convertNumToStr(temp++, modT->tm_hour); //convert the type of the hour from number to string
             } else {
-                convertNumToStr(temp, hour); //convert the type of the hour from number to string
+                convertNumToStr(temp, modT->tm_hour); //convert the type of the hour from number to string
                 temp += 2;
             }
 
             *temp++ = ':';
 
             //check whether the value of the minute of the last modified time is less than 10 or not
-            if (min < 10) {
+            if (modT->tm_min < 10) {
                 //if so, append 0 in front of the time string.
                 *temp++ = '0';
-                convertNumToStr(temp++, min); //convert the type of the minute from number to string
+                convertNumToStr(temp++, modT->tm_min); //convert the type of the minute from number to string
             } else {
-                convertNumToStr(temp, min); //convert the type of the minute from number to string
+                convertNumToStr(temp, modT->tm_min); //convert the type of the minute from number to string
                 temp += 2;
             }
 
