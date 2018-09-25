@@ -317,69 +317,6 @@ int convertNumToStr(char *str, int num) {
     return i;
 }
 
-char *checkModifiedTime(time_t modTime) {
-    time_t time;
-    struct tm *modT = localtime(&modTime); //struct time of the last modified time
-    struct tm *now = localtime(&time);     //this pointer points to the time struct which shows the current date time
-
-    char *str = (char *) mysbrk(14);
-    char *temp = str;
-    *(str + 13) = '\0';
-
-    if (modT->tm_mday < 10) {
-        *str = ' ';
-        temp += 1;
-    }
-    printf("%s\n", asctime(modT));
-    printf("%d %d %d\n", modT->tm_hour, modT->tm_mday, modT->tm_mon);
-    convertNumToStr(temp, modT->tm_mday);
-
-    temp += 2;
-    *temp++ = ' ';
-
-    convertMonthToStr(modT->tm_mon, temp);
-
-    temp += 3;
-    *temp++ = ' ';
-
-    if (modT->tm_year != now->tm_year) {
-        *temp++ = ' ';
-        convertNumToStr(temp, modT->tm_year);
-        temp += 4;
-        *temp++ = ' ';
-        *temp = '\0';
-    } else {
-        //check whether the value of the hour of the last modified time is less than 10 or not
-        if (modT->tm_hour < 10) {
-            //if so, append 0 in front of the time string.
-            *temp++ = '0';
-            convertNumToStr(temp++, modT->tm_hour);
-        } else {
-            convertNumToStr(temp, modT->tm_hour);
-            temp += 2;
-        }
-
-        *temp++ = ':';
-
-        //check whether the value of the minute of the last modified time is less than 10 or not
-        if (modT->tm_min < 10) {
-            //if so, append 0 in front of the time string.
-            *temp++ = '0';
-            convertNumToStr(temp++, modT->tm_min);
-        } else {
-            convertNumToStr(temp, modT->tm_min);
-            temp += 2;
-        }
-
-        *temp++ = ' ';
-        *temp = '\0';
-    }
-
-    printf("checkModifiedTime: %s\n", str);
-
-    return str;
-}
-
 /**
  * This function uses the syscall to get the stat of the specific file.
  *
@@ -413,7 +350,64 @@ int checkFileStat(char *fileName, char openFlag) {
         gid_t group = statBuffer.st_gid;       //group id
         time_t modTime = statBuffer.st_mtime;  //last modified time
 
-        currentNode->modTime = checkModifiedTime(modTime);
+        time_t time;
+        struct tm *modT = localtime(&modTime); //struct time of the last modified time
+        struct tm *now = localtime(&time);     //this pointer points to the time struct which shows the current date time
+
+        char *str = (char *)mysbrk(14);
+        char *temp = str;
+        *(str + 13) = '\0';
+
+        if (modT->tm_mday < 10) {
+            *str = ' ';
+            temp += 1;
+        }
+        printf("%s\n", asctime(modT));
+        printf("%d %d %d\n", modT->tm_hour, modT->tm_mday, modT->tm_mon);
+        convertNumToStr(temp, modT->tm_mday);
+
+        temp += 2;
+        *temp++ = ' ';
+
+        convertMonthToStr(modT->tm_mon, temp);
+
+        temp += 3;
+        *temp++ = ' ';
+
+        if (modT->tm_year != now->tm_year) {
+            *temp++ = ' ';
+            convertNumToStr(temp, modT->tm_year);
+            temp += 4;
+            *temp++ = ' ';
+            *temp = '\0';
+        } else {
+            //check whether the value of the hour of the last modified time is less than 10 or not
+            if (modT->tm_hour < 10) {
+                //if so, append 0 in front of the time string.
+                *temp++ = '0';
+                convertNumToStr(temp++, modT->tm_hour);
+            } else {
+                convertNumToStr(temp, modT->tm_hour);
+                temp += 2;
+            }
+
+            *temp++ = ':';
+
+            //check whether the value of the minute of the last modified time is less than 10 or not
+            if (modT->tm_min < 10) {
+                //if so, append 0 in front of the time string.
+                *temp++ = '0';
+                convertNumToStr(temp++, modT->tm_min);
+            } else {
+                convertNumToStr(temp, modT->tm_min);
+                temp += 2;
+            }
+
+            *temp++ = ' ';
+            *temp = '\0';
+        }
+
+        currentNode->modTime = str;
         //TODO compare the year of modT with now, and print out the suitable output
         printf("fileStat: %s\n", fileName);
     }
