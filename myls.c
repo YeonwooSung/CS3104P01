@@ -44,6 +44,7 @@ struct fileStat {
     char *gid;      // the group id
     char *modTime;  // the last modified time
     char *fileName; // the name of the file
+    char *fileSize; // the size of the file
     struct fileStat *next; // pointer that points to the next node
 };
 
@@ -361,61 +362,61 @@ void checkFilePermission(char *fp, mode_t mode) {
     if (mode & S_IFDIR) {
         fp[0] = 'd';
     } else {
-        fp[0] = '_';
+        fp[0] = '-';
     }
 
     if (mode & S_IRUSR) {
         fp[1] = 'r';
     } else {
-        fp[1] = '_';
+        fp[1] = '-';
     }
 
     if (mode & S_IWUSR) {
         fp[2] = 'w';
     } else {
-        fp[2] = '_';
+        fp[2] = '-';
     }
 
     if (mode & S_IXUSR) {
         fp[3] = 'x';
     } else {
-        fp[3] = '_';
+        fp[3] = '-';
     }
 
     if (mode & S_IRGRP) {
         fp[4] = 'r';
     } else {
-        fp[4] = '_';
+        fp[4] = '-';
     }
 
     if (mode & S_IWGRP) {
         fp[5] = 'w';
     } else {
-        fp[5] = '_';
+        fp[5] = '-';
     }
 
     if (mode & S_IXGRP) {
         fp[6] = 'x';
     } else {
-        fp[6] = '_';
+        fp[6] = '-';
     }
 
     if (mode & S_IROTH) {
         fp[7] = 'r';
     } else {
-        fp[7] = '_';
+        fp[7] = '-';
     }
 
-    if (mode & S_IWGRP) {
+    if (mode & S_IWOTH) {
         fp[8] = 'w';
     } else {
-        fp[8] = '_';
+        fp[8] = '-';
     }
 
     if (mode & S_IXOTH) {
         fp[9] = 'x';
     } else {
-        fp[9] = '_';
+        fp[9] = '-';
     }
 
     fp[10] = ' ';
@@ -526,23 +527,31 @@ int checkFileStat(char *fileName, char openFlag) {
         if (digits_gid > lengthOfGID) lengthOfGID = digits_gid;
         if (digits_uid > lengthOfUID) lengthOfUID = digits_uid;
 
-        char *str_uid = (char *) mysbrk(digits_uid + 1);
+        char *str_uid = (char *) mysbrk(digits_uid + 1); //allocate the memory for the user id
         convertNumToStr(str_uid, user);
         *(str_uid + digits_uid) = '\0';
         currentNode->uid = str_uid;
 
-        char *str_gid = (char *) mysbrk(digits_gid + 1);
+        char *str_gid = (char *) mysbrk(digits_gid + 1); //allocate the memory for the group id
         convertNumToStr(str_gid, group);
         *(str_gid + digits_gid) = '\0';
         currentNode->gid = str_gid;
 
-        nlink_t links = statBuffer.st_nlink;
+        nlink_t links = statBuffer.st_nlink; //get the number of hard links
         int digits_link = checkDigits(links) + 1;
         if (digits_link > lengthOfLink) lengthOfLink = digits_link;
-        char *str_link = (char *) mysbrk(digits_link + 1);
+        char *str_link = (char *) mysbrk(digits_link + 1); //allocate the memory for the number of hard links
         convertNumToStr(str_link, links);
         *(str_link + digits_link) = '\0';
         currentNode->link = str_link;
+
+        off_t size = statBuffer.st_size; //get the file size
+        int digits_size = checkDigits(size) + 1;
+        if (digits_size > lengthOfFileSize) lengthOfFileSize = digits_size;
+        char *str_size = (char *) mysbrk(digits_size + 1); //allocate the memory for the file size
+        convertNumToStr(str_size, size);
+        *(str_size + digits_size) = '\0';
+        currentNode->fileSize = str_size;
     }
 
     struct fileStat *newNode = (struct fileStat *) mysbrk(sizeof(struct fileStat));
@@ -616,7 +625,7 @@ int main(int argc, char **argv) {
             checkFileStat(argv[i], 1);
 
             struct fileStat *test = fs;
-            while (test) {
+            while (test->next) {
                 printf("%s\n%s\n%s\n%s\n%s\n", test->fileInfo, test->gid, test->link, test->uid, test->fileName);
                 test = test->next;
             }
