@@ -352,8 +352,6 @@ int checkFileStat(char *fileName, char openFlag) {
 
         struct tm *modT = localtime(&modTime); //struct time of the last modified time
 
-        printf("time issue: %s\n", asctime(modT));
-
         char *str = (char *)mysbrk(14);
         char *temp = str;
         *(str + 13) = '\0';
