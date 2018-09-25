@@ -408,6 +408,8 @@ int checkFileStat(char *fileName, char openFlag) {
         time_t modTime = statBuffer.st_mtime;  //last modified time
         struct tm *modT = localtime(&modTime); //struct time of the last modified time
 
+        printf("checkFileStat modT %s\n", asctime(modT));
+
         time_t time;
         struct tm *now = localtime(&time);     //this pointer points to the time struct which shows the current date time
 
