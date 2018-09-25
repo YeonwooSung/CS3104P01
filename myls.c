@@ -306,10 +306,17 @@ void convertMonthToStr(int month, char *str) {
     }
 }
 
+/**
+ * This function converts the type of the given integer from in to string.
+ *
+ * @param str the pointer points to the string
+ * @param num the target number
+ * @return i the digits of the given number
+ */
 int convertNumToStr(char *str, int num) {
     int i = 0, j = 10, k= 0;
 
-    while (j < num) {
+    while (j < num) { //use the while loop to check the digits of the given integer
         j *= 10;
         k += 1;
     }
@@ -377,6 +384,7 @@ int checkFileStat(char *fileName, char openFlag) {
 
         temp += 3;
         *temp++ = ' ';
+        printf("%d\n", modT->tm_year);
 
         if (modT->tm_year != 2018) {
             *temp++ = ' ';
