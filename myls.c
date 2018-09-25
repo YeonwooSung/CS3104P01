@@ -15,6 +15,7 @@
 #define MMAP_SYSCALL 9       //to implement the custom malloc
 #define MUNMAP_SYSCALL 11    //to unmap the dynamically mapped memory
 #define GETDENTS_SYSCALL 78  //to get the directory entries
+#define TIME_SYSCALL 201     //to get the current time
 
 #define GETDENT_BUFFER_SIZE 8192 //this will be used for the getdents syscall
 
@@ -460,11 +461,31 @@ int printOut(char *text) {
     return ret;
 }
 
+/**
+ * This is a wrapper function of the time syscall.
+ * The aim of this function is to get the current time by using the time system call.
+ *
+ * @return ret On success, the value of time in seconds since the Epoch is returned. Otherwise, returns -1.
+ */
+int getCurrentTime() {
+    long ret = -1;
+
+    asm("movq %1, %%rax\n\t" // %1 == (long) TIME_SYSCALL
+        "movq %2, %%rdi\n\t" // %2 == NULL
+        "syscall\n\t"
+        "movq %%rax, %0\n\t" // %0 == ret
+        : "=r"(ret)
+        : "r"((long)TIME_SYSCALL), "r"(NULL)
+        : "%rax", "%rdi", "memory");
+
+    return ret;
+}
+
 int main(int argc, char **argv) {
     if (argc > 1) {
         initHeap();
 
-        time_t time;
+        time_t time = getCurrentTime(); //use the system call "time" to get the current time
         struct tm *now = localtime(&time);
         currentYear = now->tm_year;
         printf("currentYear in main: %d\n", currentYear);
