@@ -317,7 +317,11 @@ int convertNumToStr(char *str, int num) {
     return i;
 }
 
-char *checkModifiedTime(struct tm *modT, struct tm *now) {
+char *checkModifiedTime(time_t modTime) {
+    time_t time;
+    struct tm *modT = localtime(&modTime); //struct time of the last modified time
+    struct tm *now = localtime(&time);     //this pointer points to the time struct which shows the current date time
+
     char *str = (char *) mysbrk(14);
     char *temp = str;
     *(str + 13) = '\0';
@@ -408,12 +412,8 @@ int checkFileStat(char *fileName, char openFlag) {
         uid_t user = statBuffer.st_uid;        //user id
         gid_t group = statBuffer.st_gid;       //group id
         time_t modTime = statBuffer.st_mtime;  //last modified time
-        struct tm *modT = localtime(&modTime); //struct time of the last modified time
 
-        time_t time;
-        struct tm *now = localtime(&time);     //this pointer points to the time struct which shows the current date time
-
-        currentNode->modTime = checkModifiedTime(modT, now);
+        currentNode->modTime = checkModifiedTime(modTime);
         //TODO compare the year of modT with now, and print out the suitable output
         printf("fileStat: %s\n", fileName);
     }
