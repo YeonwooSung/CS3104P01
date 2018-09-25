@@ -326,6 +326,8 @@ char *checkModifiedTime(struct tm *modT, struct tm *now) {
         *str = ' ';
         temp += 1;
     }
+    printf("%s\n", asctime(modT));
+    printf("%d %d %d\n", modT->tm_hour, modT->tm_mday, modT->tm_mon);
     convertNumToStr(temp, modT->tm_mday);
 
     temp += 2;
@@ -407,8 +409,6 @@ int checkFileStat(char *fileName, char openFlag) {
         gid_t group = statBuffer.st_gid;       //group id
         time_t modTime = statBuffer.st_mtime;  //last modified time
         struct tm *modT = localtime(&modTime); //struct time of the last modified time
-
-        printf("checkFileStat modT %s\n", asctime(modT));
 
         time_t time;
         struct tm *now = localtime(&time);     //this pointer points to the time struct which shows the current date time
