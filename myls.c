@@ -386,9 +386,9 @@ int checkFileStat(char *fileName, char openFlag) {
         *temp++ = ' ';
         printf("%d\n", modT->tm_year);
 
-        if (modT->tm_year != 2018) {
+        if (modT->tm_year != 118) {
             *temp++ = ' ';
-            convertNumToStr(temp, modT->tm_year); //convert the type of the year from number to string
+            convertNumToStr(temp, (modT->tm_year + 1900)); //convert the type of the year from number to string
             temp += 4;
             *temp++ = ' ';
             *temp = '\0';
