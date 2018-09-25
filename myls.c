@@ -420,6 +420,7 @@ int checkFileStat(char *fileName, char openFlag) {
         }
 
         currentNode->modTime = str;
+        printf("modT in checkFileStat %s\n", str);
 
         int length = strlength(fileName);
         currentNode->fileName = (char *)mysbrk(length + 1);
