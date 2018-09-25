@@ -405,6 +405,7 @@ int checkFileStat(char *fileName, char openFlag) {
         }
 
         currentNode->modTime = str;
+        printf("%s\n", str);
         int length = strlength(fileName);
         currentNode->fileName = (char *)mysbrk(length + 1);
         strcopy(currentNode->fileName, fileName, length);
