@@ -387,7 +387,7 @@ int checkFileStat(char *fileName, char openFlag) {
         temp += 3;
         *temp++ = ' ';
 
-        if (modT->tm_year != 118) { //TODO get the current local time and replace the 118
+        if (modT->tm_year != currentYear) {
             *temp++ = ' ';
             convertNumToStr(temp, (modT->tm_year + 1900)); //convert the type of the year from number to string
             temp += 4;
@@ -426,6 +426,8 @@ int checkFileStat(char *fileName, char openFlag) {
         int length = strlength(fileName);
         currentNode->fileName = (char *)mysbrk(length + 1);
         strcopy(currentNode->fileName, fileName, length); //copy the file name to the fileName field of the current file stat node.
+
+        //TODO get the fileInfo for the struct fileStat
     }
 
     struct fileStat *newNode = (struct fileStat *) mysbrk(sizeof(struct fileStat));
