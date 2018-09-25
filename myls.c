@@ -515,7 +515,6 @@ int checkFileStat(char *fileName, char openFlag) {
         currentNode->fileName = (char *)mysbrk(length + 1);
         strcopy(currentNode->fileName, fileName, length); //copy the file name to the fileName field of the current file stat node.
 
-        //TODO get the number of hard link for the struct fileStat
         char fp[12];
         checkFilePermission(fp, mode);
         currentNode->fileInfo = (char *) mysbrk(12);
@@ -529,18 +528,27 @@ int checkFileStat(char *fileName, char openFlag) {
 
         char *str_uid = (char *) mysbrk(digits_uid + 1);
         convertNumToStr(str_uid, user);
-        *(str_uid + digits_uid - 1) = '\0';
+        *(str_uid + digits_uid) = '\0';
         currentNode->uid = str_uid;
 
         char *str_gid = (char *) mysbrk(digits_gid + 1);
         convertNumToStr(str_gid, group);
-        *(str_gid + digits_gid - 1) = '\0';
+        *(str_gid + digits_gid) = '\0';
         currentNode->gid = str_gid;
+
+        nlink_t links = statBuffer.st_nlink;
+        int digits_link = checkDigits(links) + 1;
+        if (digits_link > lengthOfLink) lengthOfLink = digits_link;
+        char *str_link = (char *) mysbrk(digits_link + 1);
+        convertNumToStr(str_link, links);
+        *(str_link + digits_link) = '\0';
+        currentNode->link = str_link;
     }
 
     struct fileStat *newNode = (struct fileStat *) mysbrk(sizeof(struct fileStat));
     currentNode->next = newNode;
     currentNode = newNode;
+    currentNode->next = NULL;
 
     return ret;
 }
@@ -598,14 +606,20 @@ int main(int argc, char **argv) {
         time_t time = getCurrentTime(); //use the system call "time" to get the current time
         struct tm *now = localtime(&time);
         currentYear = now->tm_year;
-        printf("currentYear in main: %d\n", currentYear);
 
         int i;
         for (i = 1; i < argc; i++) {
             fs = (struct fileStat *) mysbrk(sizeof(struct fileStat)); // allocate the memory for the linked list that stores the file stat.
             currentNode = fs;
+            currentNode->next = NULL;
 
             checkFileStat(argv[i], 1);
+
+            struct fileStat *test = fs;
+            while (test) {
+                printf("%s\n%s\n%s\n%s\n%s\n", test->fileInfo, test->gid, test->link, test->uid, test->fileName);
+                test = test->next;
+            }
 
             brkp = heap; // move the break to the starting point of the heap to free the allocated memory
         }
