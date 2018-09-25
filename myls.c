@@ -39,7 +39,7 @@ struct fileStat {
     char *fileInfo; // file permission, number of hard links, user id, group id
     char *modTime;  // the last modified time
     char *fileName; // the name of the file
-    fileStat *next; // pointer that points to the next node
+    struct fileStat *next; // pointer that points to the next node
 };
 
 /* The global variables for the custom memory allocating function */
