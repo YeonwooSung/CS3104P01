@@ -313,6 +313,7 @@ int convertNumToStr(char *str, int num) {
         num /= 10;
         i += 1;
     }
+    printf("convertNumToStr: %d", num);
     return i;
 }
 
@@ -329,7 +330,7 @@ char *checkModifiedTime(struct tm *modT, struct tm *now) {
 
     temp += 2;
     *temp++ = ' ';
-    
+
     convertMonthToStr(modT->tm_mon, temp);
 
     temp += 3;
