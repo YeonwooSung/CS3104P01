@@ -551,12 +551,12 @@ int checkFileStat(char *fileName, char openFlag) {
         convertNumToStr(str_size, size);
         *(str_size + digits_size) = '\0';
         currentNode->fileSize = str_size;
-    }
 
-    struct fileStat *newNode = (struct fileStat *) mysbrk(sizeof(struct fileStat));
-    currentNode->next = newNode;
-    newNode->next = NULL;
-    currentNode = newNode;
+        struct fileStat *newNode = (struct fileStat *)mysbrk(sizeof(struct fileStat));
+        currentNode->next = newNode;
+        newNode->next = NULL;
+        currentNode = newNode;
+    }
 
     return ret;
 }
@@ -624,7 +624,7 @@ int main(int argc, char **argv) {
             checkFileStat(argv[i], 1);
 
             struct fileStat *test = fs;
-            while (test->next != NULL) {
+            while (test->next) {
                 printf("%s\n%s\n%s\n%s\n%s\n", test->fileInfo, test->gid, test->link, test->uid, test->fileName);
                 test = test->next;
             }
