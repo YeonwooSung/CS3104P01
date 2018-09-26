@@ -1,5 +1,3 @@
-#include <stdio.h> //TODO should remove this line before submit this
-
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -142,7 +140,7 @@ void *mysbrk(size_t size) {
  * @param str the string to check it's length
  * @return the length of the string
  */
-int strlength(char *str) {
+int strlength(const char *str) {
     int count = 0;
 
     while (*str != '\0') {
@@ -175,7 +173,7 @@ void strcopy(char *str, const char *s, int length) {
  * @param str2 the pointer that points the second string
  * @return newStr the pointer that points the concatenated string
  */
-char *strconcat(char *str1, char *str2) {
+char *strconcat(const char *str1, const char *str2) {
     int length1 = strlength(str1);
     int length2 = strlength(str2);
     int length = length1 + length2 + 1;
@@ -526,14 +524,16 @@ int checkFileStat(char *fileName, char openFlag) {
         if (digits_gid > lengthOfGID) lengthOfGID = digits_gid;
         if (digits_uid > lengthOfUID) lengthOfUID = digits_uid;
 
-        char *str_uid = (char *) mysbrk(digits_uid + 1); //allocate the memory for the user id
+        char *str_uid = (char *) mysbrk(digits_uid + 2); //allocate the memory for the user id
         convertNumToStr(str_uid, user);
-        *(str_uid + digits_uid) = '\0';
+        *(str_uid + digits_uid) = ' '; //append whitespace for the output
+        *(str_uid + digits_uid + 1) = '\0'; //append the terminator
         currentNode->uid = str_uid;
 
         char *str_gid = (char *) mysbrk(digits_gid + 1); //allocate the memory for the group id
         convertNumToStr(str_gid, group);
-        *(str_gid + digits_gid) = '\0';
+        *(str_gid + digits_gid) = ' '; //append whitespace for the output
+        *(str_gid + digits_gid + 1) = '\0'; //append the terminator
         currentNode->gid = str_gid;
 
         nlink_t links = statBuffer.st_nlink; //get the number of hard links
@@ -541,7 +541,8 @@ int checkFileStat(char *fileName, char openFlag) {
         if (digits_link > lengthOfLink) lengthOfLink = digits_link;
         char *str_link = (char *) mysbrk(digits_link + 1); //allocate the memory for the number of hard links
         convertNumToStr(str_link, links);
-        *(str_link + digits_link) = '\0';
+        *(str_link + digits_link) = ' '; //append whitespace for the output
+        *(str_link + digits_link + 1) = '\0'; //append the terminator
         currentNode->link = str_link;
 
         off_t size = statBuffer.st_size; //get the file size
@@ -549,9 +550,11 @@ int checkFileStat(char *fileName, char openFlag) {
         if (digits_size > lengthOfFileSize) lengthOfFileSize = digits_size;
         char *str_size = (char *) mysbrk(digits_size + 1); //allocate the memory for the file size
         convertNumToStr(str_size, size);
-        *(str_size + digits_size) = '\0';
+        *(str_size + digits_size) = ' '; //append whitespace character for the output
+        *(str_size + digits_size + 1) = '\0'; //append the terminator
         currentNode->fileSize = str_size;
 
+        /* make a new node for the next file (if exist) */
         struct fileStat *newNode = (struct fileStat *)mysbrk(sizeof(struct fileStat));
         currentNode->next = newNode;
         newNode->next = NULL;
@@ -607,6 +610,22 @@ int getCurrentTime() {
     return ret;
 }
 
+void checkLengthForOutput(int length, char *str) {
+    int lengthOf = strlength(str);
+    char *output = (char *) mysbrk(length);
+    char *temp = output;
+
+    int limit = length - lengthOf;
+
+    int i;
+    for (i = 0; i < limit; i++) {
+        *temp++ = ' ';
+    }
+    strcopy(temp, str, lengthOf);
+
+    printOut(output);
+}
+
 int main(int argc, char **argv) {
     if (argc > 1) {
         initHeap();
@@ -623,10 +642,21 @@ int main(int argc, char **argv) {
 
             checkFileStat(argv[i], 1);
 
-            struct fileStat *test = fs;
-            while (test->next) {
-                printf("%s\n%s\n%s\n%s\n%s\n", test->fileInfo, test->gid, test->link, test->uid, test->fileName);
-                test = test->next;
+            while (fs->next) {
+                printOut(fs->fileInfo); //print out the file permission
+
+                /* make each line the same fixed length by appending suitable number of whitespace characters */
+                checkLengthForOutput(lengthOfLink, fs->link);
+                checkLengthForOutput(lengthOfUID, fs->uid);
+                checkLengthForOutput(lengthOfGID, fs->gid);
+                checkLengthForOutput(lengthOfFileSize, fs->fileSize);
+
+                printOut(fs->modTime); //print out the last modified time
+
+                char *name = strconcat(fs->fileName, "\n"); //concatenate the file name and next line character
+                printOut(name); //print out the file name, and move to the next line
+
+                fs = fs->next;
             }
 
             brkp = heap; // move the break to the starting point of the heap to free the allocated memory
