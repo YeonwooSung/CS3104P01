@@ -519,7 +519,6 @@ int checkFileStat(char *fileName, char openFlag) {
         checkFilePermission(fp, mode);
         currentNode->fileInfo = (char *) mysbrk(12);
         strcopy(currentNode->fileInfo, fp, 11);
-        printf("fp = %s: %s\n", fp, currentNode->fileInfo);
 
         int digits_uid = checkDigits(user) + 1;
         int digits_gid = checkDigits(group) + 1;
@@ -532,14 +531,12 @@ int checkFileStat(char *fileName, char openFlag) {
         *(str_uid + digits_uid) = ' '; //append whitespace for the output
         *(str_uid + digits_uid + 1) = '\0'; //append the terminator
         currentNode->uid = str_uid;
-        printf("uid = %s: %s\n", str_uid, currentNode->uid);
 
         char *str_gid = (char *) mysbrk(digits_gid + 1); //allocate the memory for the group id
         convertNumToStr(str_gid, group);
         *(str_gid + digits_gid) = ' '; //append whitespace for the output
         *(str_gid + digits_gid + 1) = '\0'; //append the terminator
         currentNode->gid = str_gid;
-        printf("gid = %s: %s\n", str_gid, currentNode->gid);
 
         nlink_t links = statBuffer.st_nlink; //get the number of hard links
         int digits_link = checkDigits(links) + 1;
@@ -549,7 +546,6 @@ int checkFileStat(char *fileName, char openFlag) {
         *(str_link + digits_link) = ' '; //append whitespace for the output
         *(str_link + digits_link + 1) = '\0'; //append the terminator
         currentNode->link = str_link;
-        printf("link = %s: %s\n", str_link, currentNode->link);
 
         off_t size = statBuffer.st_size; //get the file size
         int digits_size = checkDigits(size) + 1;
@@ -559,7 +555,6 @@ int checkFileStat(char *fileName, char openFlag) {
         *(str_size + digits_size) = ' '; //append whitespace character for the output
         *(str_size + digits_size + 1) = '\0'; //append the terminator
         currentNode->fileSize = str_size;
-        printf("size = %s: %s\n", str_size, currentNode->fileSize);
 
         /* make a new node for the next file (if exist) */
         struct fileStat *newNode = (struct fileStat *)mysbrk(sizeof(struct fileStat));
@@ -653,10 +648,7 @@ int main(int argc, char **argv) {
                 printOut(fs->fileInfo); //print out the file permission
 
                 //TODO test with the printOut first, then test with the checkLengthForOutput
-                printOut(fs->link);
-                printOut(fs->uid);
-                printOut(fs->gid);
-                printOut(fs->fileSize);
+                printf("%s%s%s%s", fs->link, fs->uid, fs->gid, fs->fileSize);
 
                 /* make each line the same fixed length by appending suitable number of whitespace characters */
                 // checkLengthForOutput(lengthOfLink, fs->link);
