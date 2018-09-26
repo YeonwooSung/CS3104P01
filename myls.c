@@ -644,7 +644,8 @@ int main(int argc, char **argv) {
 
             while (fs->next) {
                 printOut(fs->fileInfo); //print out the file permission
-                
+
+                //TODO test with the printOut first, then test with the checkLengthForOutput
                 printOut(fs->link);
                 printOut(fs->uid);
                 printOut(fs->gid);
