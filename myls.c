@@ -647,14 +647,11 @@ int main(int argc, char **argv) {
             while (fs->next) {
                 printOut(fs->fileInfo); //print out the file permission
 
-                //TODO test with the printOut first, then test with the checkLengthForOutput
-                printf("printf: link(%s)uid(%s)gid(%s)size(%s)", fs->link, fs->uid, fs->gid, fs->fileSize);
-
                 /* make each line the same fixed length by appending suitable number of whitespace characters */
-                // checkLengthForOutput(lengthOfLink, fs->link);
-                // checkLengthForOutput(lengthOfUID, fs->uid);
-                // checkLengthForOutput(lengthOfGID, fs->gid);
-                // checkLengthForOutput(lengthOfFileSize, fs->fileSize);
+                checkLengthForOutput(lengthOfLink, fs->link);
+                checkLengthForOutput(lengthOfUID, fs->uid);
+                checkLengthForOutput(lengthOfGID, fs->gid);
+                checkLengthForOutput(lengthOfFileSize, fs->fileSize);
 
                 printOut(fs->modTime); //print out the last modified time
 
