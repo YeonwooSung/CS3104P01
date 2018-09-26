@@ -648,7 +648,7 @@ int main(int argc, char **argv) {
                 printOut(fs->fileInfo); //print out the file permission
 
                 //TODO test with the printOut first, then test with the checkLengthForOutput
-                printf("%s%s%s%s", fs->link, fs->uid, fs->gid, fs->fileSize);
+                printf("printf: %s%s%s%s", fs->link, fs->uid, fs->gid, fs->fileSize);
 
                 /* make each line the same fixed length by appending suitable number of whitespace characters */
                 // checkLengthForOutput(lengthOfLink, fs->link);
