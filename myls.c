@@ -644,12 +644,17 @@ int main(int argc, char **argv) {
 
             while (fs->next) {
                 printOut(fs->fileInfo); //print out the file permission
+                
+                printOut(fs->link);
+                printOut(fs->uid);
+                printOut(fs->gid);
+                printOut(fs->fileSize);
 
                 /* make each line the same fixed length by appending suitable number of whitespace characters */
-                checkLengthForOutput(lengthOfLink, fs->link);
-                checkLengthForOutput(lengthOfUID, fs->uid);
-                checkLengthForOutput(lengthOfGID, fs->gid);
-                checkLengthForOutput(lengthOfFileSize, fs->fileSize);
+                // checkLengthForOutput(lengthOfLink, fs->link);
+                // checkLengthForOutput(lengthOfUID, fs->uid);
+                // checkLengthForOutput(lengthOfGID, fs->gid);
+                // checkLengthForOutput(lengthOfFileSize, fs->fileSize);
 
                 printOut(fs->modTime); //print out the last modified time
 
