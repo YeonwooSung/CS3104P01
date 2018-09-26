@@ -1,4 +1,4 @@
-#include<stdio.h>
+#include <stdio.h>
 
 #include <unistd.h>
 #include <sys/stat.h>
@@ -126,13 +126,14 @@ void *mysbrk(size_t size) {
         return (void *) brkp;
     }
 
-    void *free = (void *)brkp;
-    brkp += size;    
-    if (brkp >= endp) {
-        return NULL;
+    void *memp = (void *)brkp;
+    brkp += size;       //move the brkp to allocate memory
+    if (brkp >= endp) { //to check if there is empty space in the heap
+        brkp -= size;   //move back the brkp
+        return NULL;    //returns NULL if there is no free space in the heap
     }
 
-    return free;
+    return memp;
 }
 
 
@@ -145,7 +146,7 @@ void *mysbrk(size_t size) {
 int strlength(const char *str) {
     int count = 0;
 
-    while (*str != '\0') {
+    while (*str != '\0') { //iterate the while loop until it reaches to the terminator character
         count += 1;
         str += 1;
     }
@@ -176,20 +177,20 @@ void strcopy(char *str, const char *s, int length) {
  * @return newStr the pointer that points the concatenated string
  */
 char *strconcat(const char *str1, const char *str2) {
-    int length1 = strlength(str1);
-    int length2 = strlength(str2);
-    int length = length1 + length2 + 1;
+    int length1 = strlength(str1);          //check the length of the first string
+    int length2 = strlength(str2);          //check the length of the second string
+    int length = length1 + length2 + 1;     // add 1 for the terminator.
 
     char *newStr = (char *) mysbrk(length); //dynamically allocate the memory to concatenate strings
     char *temp = newStr;
 
-    strcopy(temp, str1, length1);
+    strcopy(temp, str1, length1);           //copy the characters in the first string to the new string
     temp += length1;
 
-    strcopy(temp, str2, length2);
+    strcopy(temp, str2, length2);           //copy the characters in the second string to the new string
     temp += length2;
 
-    *temp = '\0';
+    *temp = '\0';                           //append the terminator at the end of the new string
 
     return newStr;
 }
@@ -277,6 +278,7 @@ int openDirectory(char *name) {
  * @param str the pointer that points to the new string.
  */
 void convertMonthToStr(int month, char *str) {
+    /* use the switch statement to convert the month from number to string */
     switch (month) {
         case 0 : 
             strcopy(str, "Jan", 3);
@@ -343,7 +345,7 @@ int convertNumToStr(char *str, int num) {
     int i = 0, j = checkDigits(num);
 
     while (num) {
-        *(str + j) = (char) (num % 10) + '0';
+        *(str + j) = (char) ('0' + (num % 10));
         num /= 10;
         i += 1;
         j -= 1;
@@ -483,8 +485,11 @@ int checkFileStat(char *fileName, char openFlag) {
             *temp++ = ' ';
             *temp = '\0';
         } else {
-            //check whether the value of the hour of the last modified time is less than 10 or not
-            if (modT->tm_hour < 10) {
+            
+            if (modT->tm_hour == 0) {
+                *temp++ = '0';
+                *temp++ = '0';
+            } else if (modT->tm_hour < 10) { //check whether the value of the hour of the last modified time is less than 10 or not
                 //if so, append 0 in front of the time string.
                 *temp++ = '0';
                 convertNumToStr(temp++, modT->tm_hour); //convert the type of the hour from number to string
@@ -495,8 +500,10 @@ int checkFileStat(char *fileName, char openFlag) {
 
             *temp++ = ':';
 
-            //check whether the value of the minute of the last modified time is less than 10 or not
-            if (modT->tm_min < 10) {
+            if (modT->tm_min == 0) {
+                *temp++ = '0';
+                *temp++ = '0';
+            } else if (modT->tm_min < 10) { //check whether the value of the minute of the last modified time is less than 10 or not
                 //if so, append 0 in front of the time string.
                 *temp++ = '0';
                 convertNumToStr(temp++, modT->tm_min); //convert the type of the minute from number to string
@@ -517,8 +524,8 @@ int checkFileStat(char *fileName, char openFlag) {
 
         char fp[12];
         checkFilePermission(fp, mode);
-        currentNode->fileInfo = (char *) mysbrk(12);
-        strcopy(currentNode->fileInfo, fp, 11);
+        currentNode->fileInfo = (char *) mysbrk(12); //allocate the memory to store the file permission and the file type
+        strcopy(currentNode->fileInfo, fp, 11);      //copy the file permission string to store it
 
         int digits_uid = checkDigits(user) + 1;
         int digits_gid = checkDigits(group) + 1;
@@ -620,7 +627,7 @@ void checkLengthForOutput(int length, char *str) {
     int limit = length - lengthOf;
 
     int i;
-    for (i = 0; i < limit; i++) {
+    for (i = 0; i <= limit; i++) {
         *temp++ = ' ';
     }
     strcopy(temp, str, lengthOf);
@@ -628,43 +635,59 @@ void checkLengthForOutput(int length, char *str) {
     printOut(output);
 }
 
+void util(char *argv) {
+
+    fs = (struct fileStat *)mysbrk(sizeof(struct fileStat)); // allocate the memory for the linked list that stores the file stat.
+    currentNode = fs;
+    currentNode->next = NULL;
+
+    checkFileStat(argv, 1);
+
+    while (fs->next) {
+        printOut(fs->fileInfo); //print out the file permission
+
+        /* make each line the same fixed length by appending suitable number of whitespace characters */
+        checkLengthForOutput(lengthOfLink, fs->link);
+        checkLengthForOutput(lengthOfUID, fs->uid);
+        checkLengthForOutput(lengthOfGID, fs->gid);
+        checkLengthForOutput(lengthOfFileSize, fs->fileSize);
+
+        printOut(fs->modTime); //print out the last modified time
+
+        char *name = strconcat(fs->fileName, "\n"); //concatenate the file name and next line character
+        printOut(name);                             //print out the file name, and move to the next line
+
+        fs = fs->next;
+    }
+}
+
 int main(int argc, char **argv) {
-    if (argc > 1) {
-        initHeap();
+    time_t time = getCurrentTime(); //use the system call "time" to get the current time
+    struct tm *now = localtime(&time);
+    currentYear = now->tm_year;
 
-        time_t time = getCurrentTime(); //use the system call "time" to get the current time
-        struct tm *now = localtime(&time);
-        currentYear = now->tm_year;
+    if (argc == 2) {
+        initHeap(); //use the mmap syscall to get the virtual memory for dynamic memory allocation
 
+        util(argv[1]);
+
+        myUnMap(); // use the munmap syscall to unmap the virtual memory.
+    } else if (argc > 2) {
         int i;
         for (i = 1; i < argc; i++) {
-            fs = (struct fileStat *) mysbrk(sizeof(struct fileStat)); // allocate the memory for the linked list that stores the file stat.
-            currentNode = fs;
-            currentNode->next = NULL;
+            initHeap(); //use the mmap syscall to get the virtual memory for dynamic memory allocation
 
-            checkFileStat(argv[i], 1);
+            char *msg = strconcat(argv[i], " :\n");
+            printOut(msg);
 
-            while (fs->next) {
-                printOut(fs->fileInfo); //print out the file permission
+            util(argv[i]);
 
-                /* make each line the same fixed length by appending suitable number of whitespace characters */
-                checkLengthForOutput(lengthOfLink, fs->link);
-                checkLengthForOutput(lengthOfUID, fs->uid);
-                checkLengthForOutput(lengthOfGID, fs->gid);
-                checkLengthForOutput(lengthOfFileSize, fs->fileSize);
+            char nl[2] = "\n";
+            printOut(nl);
 
-                printOut(fs->modTime); //print out the last modified time
-
-                char *name = strconcat(fs->fileName, "\n"); //concatenate the file name and next line character
-                printOut(name); //print out the file name, and move to the next line
-
-                fs = fs->next;
-            }
-
-            brkp = heap; // move the break to the starting point of the heap to free the allocated memory
+            myUnMap(); // use the munmap syscall to unmap the virtual memory.
         }
-
-        myUnMap(); // unmap the dynamically mapped memory
+ 
     } else {
         char usageMsg[27] = "Usage: ./myls \"file_path\"\n";
         printOut(usageMsg);
