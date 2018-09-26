@@ -556,8 +556,8 @@ int checkFileStat(char *fileName, char openFlag) {
 
     struct fileStat *newNode = (struct fileStat *) mysbrk(sizeof(struct fileStat));
     currentNode->next = newNode;
+    newNode->next = NULL;
     currentNode = newNode;
-    currentNode->next = NULL;
 
     return ret;
 }
