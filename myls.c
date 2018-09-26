@@ -532,7 +532,7 @@ int checkFileStat(char *fileName, char openFlag) {
         *(str_uid + digits_uid + 1) = '\0'; //append the terminator
         currentNode->uid = str_uid;
 
-        char *str_gid = (char *) mysbrk(digits_gid + 1); //allocate the memory for the group id
+        char *str_gid = (char *) mysbrk(digits_gid + 2); //allocate the memory for the group id
         convertNumToStr(str_gid, group);
         *(str_gid + digits_gid) = ' '; //append whitespace for the output
         *(str_gid + digits_gid + 1) = '\0'; //append the terminator
@@ -541,7 +541,7 @@ int checkFileStat(char *fileName, char openFlag) {
         nlink_t links = statBuffer.st_nlink; //get the number of hard links
         int digits_link = checkDigits(links) + 1;
         if (digits_link > lengthOfLink) lengthOfLink = digits_link;
-        char *str_link = (char *) mysbrk(digits_link + 1); //allocate the memory for the number of hard links
+        char *str_link = (char *) mysbrk(digits_link + 2); //allocate the memory for the number of hard links
         convertNumToStr(str_link, links);
         *(str_link + digits_link) = ' '; //append whitespace for the output
         *(str_link + digits_link + 1) = '\0'; //append the terminator
@@ -550,7 +550,7 @@ int checkFileStat(char *fileName, char openFlag) {
         off_t size = statBuffer.st_size; //get the file size
         int digits_size = checkDigits(size) + 1;
         if (digits_size > lengthOfFileSize) lengthOfFileSize = digits_size;
-        char *str_size = (char *) mysbrk(digits_size + 1); //allocate the memory for the file size
+        char *str_size = (char *) mysbrk(digits_size + 2); //allocate the memory for the file size
         convertNumToStr(str_size, size);
         *(str_size + digits_size) = ' '; //append whitespace character for the output
         *(str_size + digits_size + 1) = '\0'; //append the terminator
