@@ -1,5 +1,3 @@
-#include <stdio.h>
-
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -635,15 +633,22 @@ void checkLengthForOutput(int length, char *str) {
     printOut(output);
 }
 
-void util(char *argv) {
+/**
+ * This function reads the file stat(s) and print out the file stat(s).
+ * It calls the wrapper functions of system calls such as write or stat.
+ *
+ * @param fileName the name of the target file (or directory)
+ */
+void util(char *fileName) {
 
     fs = (struct fileStat *)mysbrk(sizeof(struct fileStat)); // allocate the memory for the linked list that stores the file stat.
     currentNode = fs;
     currentNode->next = NULL;
 
-    checkFileStat(argv, 1);
+    checkFileStat(fileName, 1);
 
-    while (fs->next) {
+    while (fs->next) { //use the while loop to iterate the linked list of the file stat
+    
         printOut(fs->fileInfo); //print out the file permission
 
         /* make each line the same fixed length by appending suitable number of whitespace characters */
@@ -661,7 +666,9 @@ void util(char *argv) {
     }
 }
 
+/* The aim of the myls is to implement the software, which works just like the "ls -n" command, by using the system call */
 int main(int argc, char **argv) {
+
     time_t time = getCurrentTime(); //use the system call "time" to get the current time
     struct tm *now = localtime(&time);
     currentYear = now->tm_year;
