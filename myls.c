@@ -624,7 +624,7 @@ int main(int argc, char **argv) {
             checkFileStat(argv[i], 1);
 
             struct fileStat *test = fs;
-            while (test->next) {
+            while (test->next != NULL) {
                 printf("%s\n%s\n%s\n%s\n%s\n", test->fileInfo, test->gid, test->link, test->uid, test->fileName);
                 test = test->next;
             }
