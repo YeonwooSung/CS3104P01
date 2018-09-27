@@ -66,4 +66,6 @@ int main(int argc, char **argv) {
         char usageMsg[27] = "Usage: ./myls \"file_path\"\n";
         printOut(usageMsg);
     }
+
+    return 1;
 }
