@@ -12,6 +12,7 @@
 #define STAT_SYSCALL 4       //to get the file stat of the specific file.
 #define MMAP_SYSCALL 9       //to implement the custom malloc
 #define MUNMAP_SYSCALL 11    //to unmap the dynamically mapped memory
+#define ACCESS_SYSCALL 21    //to check if the file exists
 #define GETDENTS_SYSCALL 78  //to get the directory entries
 #define TIME_SYSCALL 201     //to get the current time
 
@@ -603,6 +604,27 @@ int printOut(char *text) {
 }
 
 /**
+ * This is a wrapper function of the access syscall.
+ *
+ * @param fileName the name of the file to check if it exists
+ * @return If the file exists, returns 0. Otherwise, returns some negative integer.
+ */
+int accessToFile(char *fileName) {
+    long ret = -1;
+
+    asm("movq %1, %%rax\n\t"
+        "movq %2, %%rdi\n\t"
+        "movq %3, %%rsi\n\t"
+        "syscall\n\t"
+        "movq %%rax, %0\n\t"
+        : "=r"(ret)
+        : "r"((long) ACCESS_SYSCALL), "r"(fileName), "r"((long) R_OK)
+        : "%rax", "%rdi", "%rsi", "memory");
+
+    return ret;
+}
+
+/**
  * This is a wrapper function of the time syscall.
  * The aim of this function is to get the current time by using the time system call.
  *
@@ -671,6 +693,21 @@ void util(char *fileName) {
     }
 }
 
+/**
+ * This function prints out the error message to announce to the user that the given name of the file (or directory) does no exist.
+ *
+ * @param fileName the name of the file that does not exist
+ */
+void printFileNotExists(char *fileName) {
+    char errMessage[22] = "myls: cannot access \'";
+    char errMessage2[30] = "\': No such file or directory\n";
+
+    // print out the error message
+    printOut(errMessage);
+    printOut(fileName);
+    printOut(errMessage2);
+}
+
 /* The aim of the myls is to implement the software, which works just like the "ls -n" command, by using the system call */
 int main(int argc, char **argv) {
 
@@ -679,25 +716,36 @@ int main(int argc, char **argv) {
     currentYear = now->tm_year;
 
     if (argc == 2) {
-        initHeap(); //use the mmap syscall to get the virtual memory for dynamic memory allocation
+        // use the access syscall to check if the file exists
+        if (accessToFile(argv[1]) != 0) {
+            printFileNotExists(argv[1]);
+        } else {
+            initHeap(); //use the mmap syscall to get the virtual memory for dynamic memory allocation
 
-        util(argv[1]);
+            util(argv[1]);
 
-        myUnMap(); // use the munmap syscall to unmap the virtual memory.
+            myUnMap(); // use the munmap syscall to unmap the virtual memory.
+        }
+
     } else if (argc > 2) {
         int i;
         for (i = 1; i < argc; i++) {
-            initHeap(); //use the mmap syscall to get the virtual memory for dynamic memory allocation
 
-            char *msg = strconcat(argv[i], " :\n");
-            printOut(msg);
+            if (accessToFile(argv[i]) != 0) { //use the access syscall to check if the file exists
+                printFileNotExists(argv[i]);
+            } else {
+                initHeap(); //use the mmap syscall to get the virtual memory for dynamic memory allocation
 
-            util(argv[i]);
+                char *msg = strconcat(argv[i], " :\n");
+                printOut(msg);
 
-            char nl[2] = "\n";
-            printOut(nl);
+                util(argv[i]);
 
-            myUnMap(); // use the munmap syscall to unmap the virtual memory.
+                char nl[2] = "\n";
+                printOut(nl);
+
+                myUnMap(); // use the munmap syscall to unmap the virtual memory.
+            }
         }
  
     } else {
