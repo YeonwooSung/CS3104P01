@@ -26,7 +26,12 @@
 #define CUSTOM_PROT (PROT_READ | PROT_WRITE)
 #define MMAP_FLAG (MAP_PRIVATE | MAP_ANONYMOUS)
 
-/* struct for the getdents syscall */
+/* 
+ * The struct for the getdents syscall 
+ * I found this struct from the linux man page.
+ *
+ * @reference http://man7.org/linux/man-pages/man2/getdents.2.html
+ */
 struct linux_dirent {
     long d_ino;                /* Inode number */
     off_t d_off;               /* Offset to next linux_dirent */
