@@ -13,6 +13,7 @@
 #define STAT_SYSCALL 4      //to get the file stat of the specific file.
 #define MMAP_SYSCALL 9      //to implement the custom malloc
 #define MUNMAP_SYSCALL 11   //to unmap the dynamically mapped memory
+#define ACCESS_SYSCALL 21   //to check if the file exists
 #define GETDENTS_SYSCALL 78 //to get the directory entries
 
 /**
@@ -56,6 +57,42 @@ int printOut(char *text) {
         : "%rax", "%rdi", "%rsi", "%rdx", "memory");
 
     return ret;
+}
+
+/**
+ * This is a wrapper function of the access syscall.
+ *
+ * @param fileName the name of the file to check if it exists
+ * @return If the file exists, returns 0. Otherwise, returns some negative integer
+ */
+int accessToFile(char *fileName) {
+    long ret = -1;
+
+    asm("movq %1, %%rax\n\t"
+        "movq %2, %%rdi\n\t"
+        "movq %3, %%rsi\n\t"
+        "syscall\n\t"
+        "movq %%rax, %0\n\t"
+        : "=r"(ret)
+        : "r"((long)ACCESS_SYSCALL), "r"(fileName), "r"((long)R_OK)
+        : "%rax", "%rdi", "%rsi", "memory");
+
+    return ret;
+}
+
+/**
+ * This function prints out the error message to announce to the user that the given name of the file (or directory) does no exist.
+ *
+ * @param fileName the name of the file that does not exist
+ */
+void printFileNotExists(char *fileName) {
+    char errMessage[22] = "myls: cannot access \'";
+    char errMessage2[30] = "\': No such file or directory\n";
+
+    // print out the error message
+    printOut(errMessage);
+    printOut(fileName);
+    printOut(errMessage2);
 }
 
 int main(int argc, char **argv) {
