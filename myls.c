@@ -67,9 +67,9 @@ char lengthOfGID = 0;        //maximum digits of the group id
 int currentYear;             //the time as the number of years since 1900
 
 /* function prototype */
-int printOut(char *);             //a wrapper function of write() system call.
-int checkFileStat(char *, char);  //a wrapper function of stat() system call.
-int openDirectory(char *);        //a wrapper function of open() system call.
+int printOut(char *);                   //a wrapper function of write() system call.
+int checkFileStat(char *, char, char);  //a wrapper function of stat() system call.
+int openDirectory(char *);              //a wrapper function of open() system call.
 
 /**
  * This function initialises the global variables for the custom memory allocating function.
@@ -240,7 +240,12 @@ void getDirectoryEntries(long fd) {
             ld = (struct linux_dirent *)(buf + bpos);
 
             if (*ld->d_name != '.') {
-                checkFileStat(ld->d_name, 0);
+                char d_type = *(buf + bpos + ld->d_reclen - 1);
+                if (d_type == DT_DIR) {
+                    checkFileStat(ld->d_name, 0, 1);
+                } else {
+                    checkFileStat(ld->d_name, 0, 0);
+                }
             }
 
             bpos += ld->d_reclen;
@@ -362,10 +367,11 @@ int convertNumToStr(char *str, int num) {
  * This function checks the file permission of the particular file and convert the file permission to the string.
  *
  * @param fp the pointer that points to the character array
- * @param mode the variable that shows the file permission of the specific file. 
+ * @param mode the variable that shows the file permission of the specific file.
+ * @param d_dir If the getdents syscall says that this file is a directory, 1 will be passed. Otherwise, d_dir = 0.
  */
-void checkFilePermission(char *fp, mode_t mode) {
-    if (mode & S_IFDIR) {
+void checkFilePermission(char *fp, mode_t mode, char d_dir) {
+    if (d_dir) {
         fp[0] = 'd';
     } else {
         fp[0] = '-';
@@ -436,7 +442,7 @@ void checkFilePermission(char *fp, mode_t mode) {
  * @param openFlag to check if the program should call the open syscall
  * @return ret If the syscall success, returns 0. Otherwise, returns -1.
  */
-int checkFileStat(char *fileName, char openFlag) {
+int checkFileStat(char *fileName, char openFlag, char d_dir) {
     long ret = -1;
 
     struct stat statBuffer;
@@ -527,7 +533,7 @@ int checkFileStat(char *fileName, char openFlag) {
         strcopy(currentNode->fileName, fileName, length); //copy the file name to the fileName field of the current file stat node.
 
         char fp[12];
-        checkFilePermission(fp, mode);
+        checkFilePermission(fp, mode, d_dir);
         currentNode->fileInfo = (char *) mysbrk(12); //allocate the memory to store the file permission and the file type
         strcopy(currentNode->fileInfo, fp, 11);      //copy the file permission string to store it
 
@@ -607,7 +613,7 @@ int printOut(char *text) {
  * This is a wrapper function of the access syscall.
  *
  * @param fileName the name of the file to check if it exists
- * @return If the file exists, returns 0. Otherwise, returns some negative integer.
+ * @return If the file exists, returns 0. Otherwise, returns some negative integer
  */
 int accessToFile(char *fileName) {
     long ret = -1;
@@ -672,7 +678,7 @@ void util(char *fileName) {
     currentNode = fs;
     currentNode->next = NULL;
 
-    checkFileStat(fileName, 1);
+    checkFileStat(fileName, 1, 0);
 
     while (fs->next) { //use the while loop to iterate the linked list of the file stat
     
