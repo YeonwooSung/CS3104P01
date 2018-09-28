@@ -752,13 +752,13 @@ int main(int argc, char **argv) {
 
                 util(argv[i]);
 
-                char nl[2] = "\n";
-                printOut(nl);
-
                 myUnMap(); // use the munmap syscall to unmap the virtual memory.
             }
+            
+            char nl[2] = "\n";
+            printOut(nl);
         }
- 
+
     } else {
         char usageMsg[27] = "Usage: ./myls \"file_path\"\n";
         printOut(usageMsg);
