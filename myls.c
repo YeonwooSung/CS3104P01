@@ -240,7 +240,12 @@ void getDirectoryEntries(long fd) {
             ld = (struct linux_dirent *)(buf + bpos);
 
             if (*ld->d_name != '.') {
+                /*
+                 * According to the linux man page, d_type is a byte at the end of the structure that indicates the file type.
+                 * By using this, we could check whether the file is a directory or not.
+                 */
                 char d_type = *(buf + bpos + ld->d_reclen - 1);
+
                 if (d_type == DT_DIR) {
                     checkFileStat(ld->d_name, 0, 1);
                 } else {
