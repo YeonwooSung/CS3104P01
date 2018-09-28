@@ -86,7 +86,7 @@ int accessToFile(char *fileName) {
  * @param fileName the name of the file that does not exist
  */
 void printFileNotExists(char *fileName) {
-    char errMessage[22] = "myls: cannot access \'";
+    char errMessage[22] = "mycp: cannot access \'";
     char errMessage2[30] = "\': No such file or directory\n";
 
     // print out the error message
