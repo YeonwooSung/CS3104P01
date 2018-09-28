@@ -97,10 +97,10 @@ void printFileNotExists(char *fileName) {
 
 int main(int argc, char **argv) {
 
-    if (argc > 1) {
+    if (argc == 2) {
         //copy recursively
     } else {
-        char usageMsg[27] = "Usage: ./myls \"file_path\"\n";
+        char usageMsg[38] = "Usage: ./mycp \"SOURCE\" \"DESTINATION\"\n";
         printOut(usageMsg);
     }
 
