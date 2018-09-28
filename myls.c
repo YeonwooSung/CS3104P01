@@ -655,16 +655,26 @@ int getCurrentTime() {
     return ret;
 }
 
+/**
+ * The aim of this function is to append whitespace characters to the string, so that the program could
+ * match the number of digits of the fields of file stat (i.e. uid, gid, number of bytes, etc).
+ *
+ * @param length the maximum digits of the string, to calculate the number of required whitespace characters
+ * @param str the target string
+ */
 void checkLengthForOutput(int length, char *str) {
     int lengthOf = strlength(str);
+
+    //allocate the memory dynamically, to append whitespace characters by using character pointer that points to the string.
     char *output = (char *) mysbrk(length);
+
     char *temp = output;
 
-    int limit = length - lengthOf;
+    int limit = length - lengthOf; //calculate the number of required whitespace characters
 
     int i;
     for (i = 0; i <= limit; i++) {
-        *temp++ = ' ';
+        *temp++ = ' '; //append the whitespace characters
     }
     strcopy(temp, str, lengthOf);
 
