@@ -206,7 +206,7 @@ char *strconcat(const char *str1, const char *str2) {
  *
  * @param fd the file descriptor of the target directory
  */
-void getDirectoryEntries(long fd) {
+void getDirectoryEntries(char *directoryName, long fd) {
     long nread = -1;
     int bpos;
     char d_type, buf[GETDENT_BUFFER_SIZE];
@@ -246,10 +246,13 @@ void getDirectoryEntries(long fd) {
                  */
                 char d_type = *(buf + bpos + ld->d_reclen - 1);
 
+                char *str1 = strconcat(directoryName, "/");
+                char *targetName = strconcat(str1, ld->d_name);
+
                 if (d_type == DT_DIR) {
-                    checkFileStat(ld->d_name, 0, 1);
+                    checkFileStat(targetName, 0, 1);
                 } else {
-                    checkFileStat(ld->d_name, 0, 0);
+                    checkFileStat(targetName, 0, 0);
                 }
             }
 
@@ -466,7 +469,7 @@ int checkFileStat(char *fileName, char openFlag, char d_dir) {
     //use the bitwise operators to check if the current file is a directory and check if the program should call the open syscall
     if ( (S_IFDIR & mode) && openFlag) {
         int fd = openDirectory(fileName); //open the directory
-        getDirectoryEntries(fd);
+        getDirectoryEntries(fileName, fd);
     } else {
 
         uid_t user = statBuffer.st_uid;        //user id
