@@ -240,10 +240,15 @@ void getDirectoryEntries(char *directoryName, long fd) {
             ld = (struct linux_dirent *)(buf + bpos);
 
             if (*ld->d_name != '.') {
-                char *str1 = strconcat(directoryName, "/");
-                char *targetName = strconcat(str1, ld->d_name);
 
-                checkFileStat(targetName, 0);
+                if (*directoryName == '.' && *(directoryName+1) == '\0') {
+                    checkFileStat(ld->d_name, 0);
+                } else {
+                    char *str1 = strconcat(directoryName, "/");
+                    char *targetName = strconcat(str1, ld->d_name);
+
+                    checkFileStat(targetName, 0);
+                }
             }
 
             bpos += ld->d_reclen;
