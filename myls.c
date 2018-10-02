@@ -662,7 +662,7 @@ void checkLengthForOutput(int length, char *str) {
     int lengthOf = strlength(str);
 
     //allocate the memory dynamically, to append whitespace characters by using character pointer that points to the string.
-    char *output = (char *) mysbrk(length);
+    char *output = (char *) mysbrk(length + 2);
 
     char *temp = output;
 
