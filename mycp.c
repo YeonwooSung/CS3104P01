@@ -36,16 +36,16 @@ int strlength(const char *str) {
 }
 
 /**
- * This function prints out the given string.
+ * This function is a wrapper function of the write syscall.
  * This function uses the inline assembly function to make interaction with the kernel more explicit.
  * To implement this function, I reused the given code, which is written by Kasim Terzic.
  *
  * @param text the target text that should be printed out
+ * @param handle for stdout, 2 for stderr, file handle from open() for files
  * @return ret If the syscall success, returns 1. Otherwise, returns -1.
  */
-int printOut(const char *text) {
+int writeText(const char *text, long handle) {
     size_t len = strlength(text); //Length of our string, which we need to pass to write syscall
-    long handle = 1;              //1 for stdout, 2 for stderr, file handle from open() for files
     long ret = -1;                //Return value received from the system call
 
     asm("movq %1, %%rax\n\t" // %1 == (long) WRITE_SYSCALL
@@ -59,6 +59,28 @@ int printOut(const char *text) {
         : "%rax", "%rdi", "%rsi", "%rdx", "memory");
 
     return ret;
+}
+
+/**
+ * Prints out the given text via stdout stream.
+ *
+ * @param text the text
+ * @return If the write syscall success, returns 1. Otherwise, returns -1.
+ */
+int printOut(const char *text) {
+    long l = 1; //1 for stdout
+    return writeText(text, l);
+}
+
+/**
+ * Prints out the given text via stderr stream.
+ *
+ * @param text the error message
+ * @return If the write syscall success, returns 1. Otherwise, returns -1.
+ */
+int printErr(const char *text) {
+    long l = 2; //2 for stderr
+    return writeText(text, l);
 }
 
 /**
@@ -118,26 +140,26 @@ void printFileNotExists(char *fileName) {
     char errMessage2[30] = "\': No such file or directory\n";
 
     // print out the error message
-    printOut(errMessage);
-    printOut(fileName);
-    printOut(errMessage2);
+    printErr(errMessage);
+    printErr(fileName);
+    printErr(errMessage2);
 }
 
 /* mycp is a program that copies the source to the destination recursively. */
 int main(int argc, char **argv) {
 
-    if (argc == 2) {
+    if (argc == 3) {
         if (accessToFile(argv[1]) != 0) { //use the access syscall to check if the file exists
-            printOut("mycp: cannot stat");
-            printOut(argv[1]);
-            printOut(": Cannot find such file or directory\n");
+            printErr("mycp: cannot stat ");
+            printErr(argv[1]);
+            printErr(": Cannot find such file or directory\n");
         } else {
             //
         }
 
     } else {
         char usageMsg[38] = "Usage: ./mycp \"SOURCE\" \"DESTINATION\"\n";
-        printOut(usageMsg);
+        printErr(usageMsg);
     }
 
     return 1;
