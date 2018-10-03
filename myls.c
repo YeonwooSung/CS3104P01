@@ -477,11 +477,13 @@ int checkFileStat(char *fileName, char openFlag) {
         if (modT->tm_mday < 10) {
             *str = ' ';
             temp += 1;
+            *temp++ = (char) (modT->tm_mday + '0');
+        } else {
+            convertNumToStr(temp, modT->tm_mday); //convert the type of the day of the month from number to string
+
+            temp += 2;
         }
 
-        convertNumToStr(temp, modT->tm_mday); //convert the type of the day of the month from number to string
-
-        temp += 2;
         *temp++ = ' ';
 
         convertMonthToStr(modT->tm_mon, temp); //convert the type of the month from number to string
