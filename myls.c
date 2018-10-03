@@ -765,6 +765,12 @@ int main(int argc, char **argv) {
             
             char nl[2] = "\n";
             printOut(nl);
+
+            //reset the digit counts to 0
+            lengthOfFileSize = 0;
+            lengthOfLink = 0;
+            lengthOfGID = 0;
+            lengthOfUID = 0;
         }
 
     } else {
