@@ -338,7 +338,7 @@ void convertMonthToStr(int month, char *str) {
 int checkDigits(int num) {
     int i = 0, j = 10;
 
-    while (j < num) {
+    while (j <= num) {
         j *= 10;
         i += 1;
     }
