@@ -20,12 +20,12 @@ This means that if the source file is a directory, mycp should be able to copy a
 
 ## Design & Implementation
 
-## myls
+### myls
 
 The total number of system calls that were used for implementing the myls is 8: WRITE(1), OPEN(2), STAT(4), MMAP(9), MUNMAP(11), ACCESS(21), GETDENTS(78), and TIME(201).
 
 
-## mycp
+### mycp
 
 ## TODO
 
