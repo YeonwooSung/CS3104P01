@@ -9,14 +9,96 @@
 /* system call numbers */
 #define READ_SYSCALL 0      //to read the file to copy the data of that file
 #define WRITE_SYSCALL 1     //to copy the data from the original file
-#define OPEN_SYSCALL 2      //to open the directory
-#define STAT_SYSCALL 4      //to get the file stat of the specific file.
+#define OPEN_SYSCALL 2      //to open the directory or file
+#define CLOSE_SYSCALL 3     //to close the opened directory or file
+#define STAT_SYSCALL 4      //to get the file stat of the specific file
 #define MMAP_SYSCALL 9      //to implement the custom malloc
 #define MUNMAP_SYSCALL 11   //to unmap the dynamically mapped memory
 #define ACCESS_SYSCALL 21   //to check if the file exists
+#define EXIT_SYSCALL 60     //to terminate the process when the error occurred
 #define GETDENTS_SYSCALL 78 //to get the directory entries
 
 #define OPEN_MODE (S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)
+
+/* The global variables for the custom memory allocating function */
+char *heap;        //the pointer that points the custom heap
+char *brkp = NULL; //the pointer that points the custom break of the heap
+char *endp = NULL; //the pointer that points the end of the custom heap
+
+/* preprocessors for the custom malloc function */
+#define MAX_HEAP_SIZE 4194304 //1024 * 4096
+#define CUSTOM_PROT (PROT_READ | PROT_WRITE)
+#define MMAP_FLAG (MAP_PRIVATE | MAP_ANONYMOUS)
+
+/**
+ * This function initialises the global variables for the custom memory allocating function.
+ * The mmap syscall is used to initialise the custom heap memory.
+ */
+void initHeap() {
+    char *ptr = NULL;
+    unsigned long fd = -1;
+    unsigned long offset = 0;
+
+    asm("movq %1, %%rax\n\t" // %1 == (long) MMAP_SYSCALL
+        "movq %2, %%rdi\n\t" // %2 == NULL
+        "movq %3, %%rsi\n\t" // %3 == (unsigned long) MAX_HEAP_SIZE
+        "movq %4, %%rdx\n\t" // %4 == (unsigned long) CUSTOM_PROT
+        "movq %5, %%r10\n\t" // %5 == (unsigned long) MMAP_FLAG
+        "movq %6, %%r8\n\t"  // %6 == fd
+        "movq %7, %%r9\n\t"  // %7 == offset
+        "syscall\n\t"
+        "movq %%rax, %0\n\t" // %0 == ptr
+        : "=r"(ptr)          /* if the syscall success, the memory address of the mapped memory will be stored in the ptr */
+        : "r"((long)MMAP_SYSCALL), "r"(NULL), "r"((unsigned long)MAX_HEAP_SIZE), "r"((unsigned long)CUSTOM_PROT), "r"((unsigned long)MMAP_FLAG), "r"(fd), "r"(offset)
+        : "%rax", "%rdi", "%rsi", "%rdx", "%r10", "%r8", "%r9", "memory");
+
+    heap = ptr;
+    brkp = ptr;
+    endp = ptr + MAX_HEAP_SIZE;
+}
+
+/**
+ * This function is a wrapper function of the munmap system call.
+ * The aim of this function is to unmap the mapped memory by using the syscall munmap.
+ *
+ * @return ret If the munmap syscall success, returns 0. Otherwise, returns -1.
+ */
+int myUnMap() {
+    long ret = -1;
+
+    asm("movq %1, %%rax\n\t" // %1 == (long) MUNMAP_SYSCALL
+        "movq %2, %%rdi\n\t" // %2 == (unsigned long) heap
+        "movq %3, %%rsi\n\t" // %3 == (unsigned long) MAX_HEAP_SIZE
+        "syscall\n\t"
+        "movq %%rax, %0\n\t"
+        : "=r"(ret)
+        : "r"((long)MUNMAP_SYSCALL), "r"((unsigned long)heap), "r"((unsigned long)MAX_HEAP_SIZE)
+        : "%rax", "%rdi", "%rsi", "memory");
+
+    return ret;
+}
+
+/**
+ * The aim of this function is to move the break of the custom heap to allocate the memory dynamically.
+ *
+ * To implement this custom sbrk function, I copied some of the codes from the following article.
+ * @reference <https://people.kth.se/~johanmon/ose/assignments/maplloc.pdf>
+ */
+void *mysbrk(size_t size) {
+    if (size == 0) {
+        return (void *)brkp;
+    }
+
+    void *memp = (void *)brkp;
+    brkp += size; //move the brkp to allocate memory
+
+    if (brkp >= endp) { //to check if there is empty space in the heap
+        brkp -= size; //move back the brkp
+        return NULL;  //returns NULL if there is no free space in the heap
+    }
+
+    return memp;
+}
 
 /**
  * The custom strlen function.
@@ -84,14 +166,12 @@ int printErr(const char *text) {
 }
 
 /**
- * This function opens the file by using the syscall.
- * The openDirectory() will be used to open the directory to read the files in it.
- * This function uses the extended inline assembler to make interaction with the kernel more explicit.
+ * This function is a wrapper function of open system call.
  *
  * @param name the name of the directory that should be opened
  * @return ret If the syscall success, the lowest numbered unused file descriptor will be returned. Otherwise, returns some negative value.
  */
-int openDirectory(char *name) {
+int openFile(char *name) {
     long ret = -1;
     int flag = O_RDONLY;
     int mode = OPEN_MODE;
@@ -103,10 +183,90 @@ int openDirectory(char *name) {
         "syscall\n\t"
         "movq %%rax, %0\n\t"
         : "=r"(ret)
-        : "r"((long)OPEN_SYSCALL), "r"(name), "r"((long)flag), "r"((long)mode) //convert the type from int to long for the movq instruction
+        : "r"((long)OPEN_SYSCALL), "r"(name), "r"((long)flag), "r"((long)mode)
         : "%rax", "%rdi", "%rsi", "%rdx", "memory");
 
     return ret;
+}
+
+/**
+ * This is a wrapper function of the close syscall.
+ *
+ * @param fd the file descriptor of the opened file (or directory)
+ * @return Returns zero on success. On error, negative value would be returned, which will depend on the setted error number.
+ */
+int closeFile(long fd) {
+    long ret = -1;
+
+    asm("movq %1, %%rax\n\t" // %1 = (long) OPEN_SYSCALL
+        "movq %2, %%rdi\n\t" // %2 = fd
+        "syscall\n\t"
+        "movq %%rax, %0\n\t"
+        : "=r"(ret)
+        : "r"((long)OPEN_SYSCALL), "r"(fd)
+        : "%rax", "%rdi", "%rsi", "%rdx", "memory");
+
+    return ret;
+}
+
+/**
+ * This function is a wrapper function of the read system call.
+ * It reads the data from the file that is corresponding to the given file descriptor.
+ *
+ * @param fd the file descriptor
+ * @param buf the buffer to store the read data
+ * @param count the total number of bits to read
+ * @return Returns the number of bytes that were read. If value is negative, then the system call returned an error.
+ */
+int readFile(unsigned int fd, char *buf, long count) {
+    long ret = -1;
+
+    asm("movq %1, %%rax\n\t" // %1 = (long) READ_SYSCALL
+        "movq %2, %%rdi\n\t" // %2 = (long) fd
+        "movq %3, %%rsi\n\t" // %3 = buf
+        "movq %4, %%rdx\n\t" // %4 = count
+        "syscall\n\t"
+        "movq %%rax, %0\n\t"
+        : "=r"(ret)
+        : "r"((long)READ_SYSCALL), "r"((long) fd), "r"(buf), "r"(count) //convert the type from int to long for the movq instruction
+        : "%rax", "%rdi", "%rsi", "%rdx", "memory");
+
+    return ret;
+}
+
+/**
+ * This function uses the stat syscall to check if the given name of file is a directory or a file.
+ *
+ * @param name the name of the file (or directory)
+ * @return If the stat syscall fails, returns -1. If the given file is a directory, returns 1. Otherwise, returns 0.
+ */
+int checkFileStat(char *name) {
+    long ret = -1;
+
+    struct stat statBuffer;
+
+    asm("movq %1, %%rax\n\t" // %1 = (long) STAT_SYSCALL
+        "movq %2, %%rdi\n\t" // %2 = fileName
+        "movq %3, %%rsi\n\t" // %3 = statBuffer
+        "syscall\n\t"
+        "movq %%rax, %0\n\t"
+        : "=r"(ret)
+        : "r"((long)STAT_SYSCALL), "r"(name), "r"(&statBuffer) //covert the type from int to long for the movq instruction
+        : "%rax", "%rdi", "%rsi", "memory");
+
+    if (ret != 0) { //0 will be stored in the ret only when the stat syscall success.
+        printErr("Failed to get the stat of ");
+        printErr(name);
+        printErr("\n");
+
+        return -1;
+    }
+
+    if (statBuffer.st_mode & S_IFDIR) { //check if the file is directory
+        return 1;
+    }
+
+    return 0;
 }
 
 /**
@@ -145,21 +305,66 @@ void printFileNotExists(char *fileName) {
     printErr(errMessage2);
 }
 
+void exitProcess(int exitCode) {
+    long l = -1;
+
+    asm("movq %1, %%rax\n\t"
+        "movq %2, %%rdi\n\t"
+        "syscall\n\t"
+        "movq %%rax, %0\n\t"
+        : "=r"(l)
+        : "r"((long) EXIT_SYSCALL), "r"((long) exitCode)
+        : "%rax", "%rdi"
+    );
+}
+
+/**
+ * This function prints out the error message when the given source file or destination does not exist.
+ *
+ * @param name the name of file
+ */
+void mycp_failed(char *name) {
+    printErr("mycp: cannot stat ");
+    printErr(name);
+    printErr(": Cannot find such file or directory\n");
+
+    exitProcess(1);
+}
+
 /* mycp is a program that copies the source to the destination recursively. */
 int main(int argc, char **argv) {
 
     if (argc == 3) {
-        if (accessToFile(argv[1]) != 0) { //use the access syscall to check if the file exists
-            printErr("mycp: cannot stat ");
-            printErr(argv[1]);
-            printErr(": Cannot find such file or directory\n");
+        if (accessToFile(argv[1]) != 0) { //use the access syscall to check if the source file exists
+
+            mycp_failed(argv[1]);
+
         } else {
-            //
+
+            if (accessToFile(argv[2]) != 0) { //use the access syscall to check if the destination directory exists.
+                mycp_failed(argv[2]);
+            } else if (checkFileStat(argv[2]) != 1) { //use the stat syscall to check whether the destination is a directory or not.
+                printErr(argv[2]);
+                printErr(" is not a directory!\n");
+                exitProcess(0);
+            }
+
+            int val = checkFileStat(argv[2]);
+
+            if (val > 0) { //checkFileStat returns 1 when the target file is a directory
+                //directory
+            } else if (val != 0) { //when the val < 0, error is occurred in the stat syscall
+                printErr("mycp failed\n");
+                exitProcess(0);
+            } else { //checkFileStat returns 1 when the target file is not a directory.
+                //
+            }
         }
 
     } else {
         char usageMsg[38] = "Usage: ./mycp \"SOURCE\" \"DESTINATION\"\n";
         printErr(usageMsg);
+        exitProcess(0);
     }
 
     return 1;
