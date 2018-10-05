@@ -442,6 +442,7 @@ void checkFilePermission(char *fp, mode_t mode) {
  *
  * @param fileName the name of the target file
  * @param openFlag to check if the program should call the open syscall
+ * @return On success, zero will be returned. Otherwise, some negative value will be returned.
  */
 int checkFileStat(char *fileName, char openFlag) {
     long ret = -1;
