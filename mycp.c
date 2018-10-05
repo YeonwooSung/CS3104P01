@@ -20,6 +20,24 @@
 
 #define OPEN_MODE (S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)
 
+/* preprocessors for the buffer size */
+#define READ_SIZE 4096     //buffer size for the read syscall
+#define GETDENTS_SIZE 2048 //buffer size for the getdents syscall
+
+/* 
+ * The struct for the getdents syscall 
+ * I found this struct from the linux man page.
+ *
+ * @reference http://man7.org/linux/man-pages/man2/getdents.2.html
+ */
+struct linux_dirent {
+    long d_ino;              /* Inode number */
+    off_t d_off;             /* Offset to next linux_dirent */
+    unsigned short d_reclen; /* Length of this linux_dirent */
+    char d_name[];           /* Filename (null-terminated) */
+};
+
+
 /* The global variables for the custom memory allocating function */
 char *heap;        //the pointer that points the custom heap
 char *brkp = NULL; //the pointer that points the custom break of the heap
@@ -319,6 +337,54 @@ void exitProcess(int exitCode) {
 }
 
 /**
+ * This function is a wrapper function of the getdents system call.
+ * The system call getdents() reads several linux_dirent structures from
+ * the directory referred to by the open file descriptor into the buffer.
+ *
+ * @param fd the file descriptor of the target directory
+ */
+void getDirectoryEntries(char *directoryName, long fd) {
+    long nread = -1;
+    int bpos;
+    char d_type, buf[GETDENTS_SIZE];
+    struct linux_dirent *ld;
+
+    for (;;) {
+        /* 
+         * If the system call success, the getdents syscall returns the number of bytes read. 
+         * On end of directory, the getdents syscall returns 0. 
+         * Otherwise, it returns -1.
+         */
+        asm("movq %1, %%rax\n\t" // %1 = (long) OPEN_SYSCALL
+            "movq %2, %%rdi\n\t" // %2 = fd
+            "movq %3, %%rsi\n\t" // %3 = buf
+            "movq %4, %%rdx\n\t" // %4 = (long) GETDENT_BUFFER_SIZE
+            "syscall\n\t"
+            "movq %%rax, %0\n\t"
+            : "=r"(nread)
+            : "r"((long)GETDENTS_SYSCALL), "r"(fd), "r"(buf), "r"((unsigned long)GETDENTS_SIZE)
+            : "%rax", "%rdi", "%rsi", "%rdx", "memory"
+        );
+
+        if (nread == -1) {
+            char errorMsg[40] = "Error occurred in the getdents syscall\n";
+            printOut(errorMsg); //print out the error message
+            break;
+        } else if (nread == 0) { //check if the getdents syscall is on the end of the directory
+            break;
+        }
+
+        for (bpos = 0; bpos < nread;) {
+            ld = (struct linux_dirent *)(buf + bpos);
+
+            //TODO iterate the directories
+
+            bpos += ld->d_reclen;
+        }
+    }
+}
+
+/**
  * This function prints out the error message when the given source file or destination does not exist.
  *
  * @param name the name of file
@@ -352,12 +418,12 @@ int main(int argc, char **argv) {
             int val = checkFileStat(argv[2]);
 
             if (val > 0) { //checkFileStat returns 1 when the target file is a directory
-                //directory
+                //TODO directory
             } else if (val != 0) { //when the val < 0, error is occurred in the stat syscall
                 printErr("mycp failed\n");
                 exitProcess(0);
             } else { //checkFileStat returns 1 when the target file is not a directory.
-                //
+                //TODO non directory files
             }
         }
 
