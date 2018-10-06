@@ -21,11 +21,13 @@
 #define GETDENTS_SYSCALL 78 //to get the directory entries
 #define MKDIR_SYSCALL 83    //to make the directory
 #define RMDIR_SYSCALL 84    //to remove the directory
+#define CREAT_SYSCALL 85    //to create the file
 #define CHMOD_SYSCALL 90    //to change the mode(file permission) of the file
 
 /* preprocessors for the file permission mode */
 #define OPEN_MODE (S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH) //the mode for the open syscall
-#define MKDIR_MODE OPEN_MODE                               //the mode for the mkdir syscall
+#define MKDIR_MODE OPEN_MODE                              //the mode for the mkdir syscall
+#define CREATE_MODE (S_IRWXU | S_IRWXG | S_IRWXO)         //the mode for the creat syscall
 
 /* preprocessors for the buffer size */
 #define READ_SIZE 4096     //buffer size for the read syscall
@@ -337,20 +339,10 @@ int accessToFile(char *fileName) {
 }
 
 /**
- * This function prints out the error message to announce to the user that the given name of the file (or directory) does no exist.
+ * This is a wrapper function of the exit syscall.
  *
- * @param fileName the name of the file that does not exist
+ * @param exitCode the exit code
  */
-void printFileNotExists(char *fileName) {
-    char errMessage[22] = "mycp: cannot access \'";
-    char errMessage2[30] = "\': No such file or directory\n";
-
-    // print out the error message
-    printErr(errMessage);
-    printErr(fileName);
-    printErr(errMessage2);
-}
-
 void exitProcess(int exitCode) {
     long l = -1;
 
@@ -457,6 +449,29 @@ void getDirectoryEntries(char *directoryName, long fd) {
             bpos += ld->d_reclen;
         }
     }
+}
+
+/**
+ * This is a wrapper function of the creat syscall.
+ * It creates the file with a given path name.
+ *
+ * @param pathName the path name of the file that would be created
+ * @return Returns the new file descriptor on success. Otherwise, some negative integer will be returned.
+ */
+int createFile(char *pathName) {
+    long ret = -1;
+
+    asm("movq %1, %%rax\n\t"
+        "movq %2, %%rdi\n\t"
+        "movq %3, %%rsi\n\t"
+        "syscall\n\t"
+        "movq %%rax, %0\n\t"
+        : "=r"(ret)
+        : "r"((long) CREAT_SYSCALL), "r"(pathName), "r"((long) CREATE_MODE)
+        : "%rax", "%rdi", "%rsi", "memory"
+    );
+
+    return ret;
 }
 
 /**
