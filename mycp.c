@@ -26,7 +26,7 @@
 
 /* preprocessors for the file permission mode */
 #define OPEN_MODE (S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)    //the mode for the open syscall
-#define MKDIR_MODE (S_IRWXR | S_IRWXG | S_IROTH)             //the mode for the mkdir syscall
+#define MKDIR_MODE (S_IRWXU | S_IRWXG | S_IROTH)             //the mode for the mkdir syscall
 #define CREATE_MODE (S_IRWXU | S_IRWXG | S_IRWXO)            //the mode for the creat syscall
 
 /* preprocessors for the buffer size */
