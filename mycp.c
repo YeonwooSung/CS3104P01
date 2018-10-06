@@ -139,6 +139,27 @@ int strlength(const char *str) {
 }
 
 /**
+ * This function compares the two strings.
+ *
+ * @param str1 the pointer that points to the first string
+ * @param str2 the pointer that points to the second string
+ *
+ * @return Returns an integer less than, equal to, or greater than zero if str1 is found, 
+ *         respectively, to be less than, to match, or be greater than str2.
+ */
+int strCompare(const char *str1, const char *str2) {
+    int i = 0, j = 0;
+
+    while (str1[i] != '\0') {
+        if (str1[i++] != str2[j++]) {
+            break;
+        }
+    }
+
+    return (str1[i] - str2[j]);
+}
+
+/**
  * This function is a wrapper function of the write syscall.
  * This function uses the inline assembly function to make interaction with the kernel more explicit.
  * To implement this function, I reused the given code, which is written by Kasim Terzic.
@@ -462,6 +483,15 @@ int main(int argc, char **argv) {
             } else if (checkFileStat(argv[2]) != 1) { //use the stat syscall to check whether the destination is a directory or not.
                 printErr(argv[2]);
                 printErr(" is not a directory!\n");
+                exitProcess(0);
+            }
+
+            if (!(strCompare(argv[1], argv[2]))) { //check if the source name and the destination name are same
+                printErr("mycp: ");
+                printErr(argv[1]);
+                printErr(" and ");
+                printErr(argv[2]);
+                printErr(" are the same file.\n");
                 exitProcess(0);
             }
 
