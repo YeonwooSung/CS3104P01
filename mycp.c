@@ -25,9 +25,9 @@
 #define CHMOD_SYSCALL 90    //to change the mode(file permission) of the file
 
 /* preprocessors for the file permission mode */
-#define OPEN_MODE (S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH) //the mode for the open syscall
-#define MKDIR_MODE OPEN_MODE                              //the mode for the mkdir syscall
-#define CREATE_MODE (S_IRWXU | S_IRWXG | S_IRWXO)         //the mode for the creat syscall
+#define OPEN_MODE (S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)    //the mode for the open syscall
+#define MKDIR_MODE (S_IRWXR | S_IRWXG | S_IROTH)             //the mode for the mkdir syscall
+#define CREATE_MODE (S_IRWXU | S_IRWXG | S_IRWXO)            //the mode for the creat syscall
 
 /* preprocessors for the buffer size */
 #define READ_SIZE 4096     //buffer size for the read syscall
