@@ -145,6 +145,49 @@ int strlength(const char *str) {
 }
 
 /**
+ * The aim of this function is to copy the string to the new string.
+ *
+ * @param str the pointer that points the new string
+ * @param s the pointer that points the string that contains the value that should be copied
+ * @param length the length of the string that should be copied
+ */
+void strcopy(char *str, const char *s, int length)
+{
+    for (int i = 0; i < length; i++)
+    {
+        *str = *s;
+        str += 1;
+        s += 1;
+    }
+}
+
+/**
+ * This function concatenates 2 given strings.
+ *
+ * @param str1 the pointer that points the first string
+ * @param str2 the pointer that points the second string
+ * @return newStr the pointer that points the concatenated string
+ */
+char *strconcat(const char *str1, const char *str2) {
+    int length1 = strlength(str1);      //check the length of the first string
+    int length2 = strlength(str2);      //check the length of the second string
+    int length = length1 + length2 + 1; // add 1 for the terminator.
+
+    char *newStr = (char *)mysbrk(length); //dynamically allocate the memory to concatenate strings
+    char *temp = newStr;
+
+    strcopy(temp, str1, length1); //copy the characters in the first string to the new string
+    temp += length1;
+
+    strcopy(temp, str2, length2); //copy the characters in the second string to the new string
+    temp += length2;
+
+    *temp = '\0'; //append the terminator at the end of the new string
+
+    return newStr;
+}
+
+/**
  * This function compares the two strings.
  *
  * @param str1 the pointer that points to the first string
@@ -582,7 +625,20 @@ int main(int argc, char **argv) {
                 printErr("mycp failed\n");
                 exitProcess(0);
             } else { //checkFileStat returns 1 when the target file is not a directory.
-                //TODO non directory files
+                initHeap();
+
+                char *tempPath = strconcat(argv[2], "/");
+                char *path = strconcat(tempPath, argv[1]);
+
+                int fd = createFile(path); //create the file to the destination.
+
+                if (fd < 0) {
+                    terminateAndRemoveDir(notExists, argv[2]);
+                }
+
+                //TODO read and write
+
+                myUnMap(); //unmap the allocated virtual memory
             }
         }
 
