@@ -19,9 +19,13 @@
 #define TRUNC_SYSCALL 76    //to truncate the file that is specified by the file path
 #define FTRUNC_SYSCALL 77   //to truncate the file that is specified by the file descriptor
 #define GETDENTS_SYSCALL 78 //to get the directory entries
+#define MKDIR_SYSCALL 83    //to make the directory
+#define RMDIR_SYSCALL 84    //to remove the directory
 #define CHMOD_SYSCALL 90    //to change the mode(file permission) of the file
 
-#define OPEN_MODE (S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)
+/* preprocessors for the file permission mode */
+#define OPEN_MODE (S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH) //the mode for the open syscall
+#define MKDIR_MODE OPEN_MODE                               //the mode for the mkdir syscall
 
 /* preprocessors for the buffer size */
 #define READ_SIZE 4096     //buffer size for the read syscall
@@ -456,34 +460,90 @@ void getDirectoryEntries(char *directoryName, long fd) {
 }
 
 /**
- * This function prints out the error message when the given source file or destination does not exist.
+ * This is a wrapper function for the mkdir system call.
+ * It creates a new directory with a given name.
  *
- * @param name the name of file
+ * @param name the name of the new directory
+ * @return On success, 0 will be returned. Otherwise, some negative value will be returned.
  */
-void mycp_failed(char *name) {
-    printErr("mycp: cannot stat ");
-    printErr(name);
-    printErr(": Cannot find such file or directory\n");
+int makeDirectory(char *name) {
+    long ret = -1;
 
-    exitProcess(1);
+    asm("movq %1, %%rax\n\t" //%1 == (long) MKDIR_SYSCALL
+        "movq %2, %%rdi\n\t" //%2 == name
+        "movq %3, %%rsi\n\t" //%3 == (long) MKDIR_MODE
+        "syscall\n\t"
+        "movq %%rax, %0\n\t" //%0 == ret
+        : "=r"(ret)
+        : "r"((long) MKDIR_SYSCALL), "r"(name), "r"((long)MKDIR_MODE)
+        : "%rax", "%rdi", "%rsi", "memory");
+
+    return ret;
+}
+
+/**
+ * This function is a wrapper function of the rmdir system call.
+ * It removes the particular directory.
+ *
+ * @param name the name of the target directory.
+ * @return On success, 0 will be returned. Otherwise, some negative value will be returned.
+ */
+int removeDirectory(char *name) {
+    long ret = -1;
+
+    asm("movq %1, %%rax\n\t" //%1 == (long) RMDIR_SYSCALL
+        "movq %2, %%rdi\n\t" //%2 == name
+        "syscall\n\t"
+        "movq %%rax, %0\n\t" //%0 == ret
+        : "=r"(ret)
+        : "r"((long)RMDIR_SYSCALL), "r"(name)
+        : "%rax", "%rdi", "memory");
+
+    return ret;
+}
+
+/**
+ * This function removes the generated directory(if required), and exit the process.
+ *
+ * @param generated to check whether the process should remove the directory or not
+ * @param name the name of the target directory
+ */
+void terminateAndRemoveDir(char generated, char *name) {
+    if (generated) {
+        removeDirectory(name);
+    }
+    exitProcess(0);
 }
 
 /* mycp is a program that copies the source to the destination recursively. */
 int main(int argc, char **argv) {
 
-    if (argc == 3) {
+    if (argc != 3){
+
+        char usageMsg[38] = "Usage: ./mycp \"SOURCE\" \"DESTINATION\"\n";
+        printErr(usageMsg);
+        exitProcess(0);
+
+    } else {
         if (accessToFile(argv[1]) != 0) { //use the access syscall to check if the source file exists
 
-            mycp_failed(argv[1]);
+            printErr("mycp: cannot stat ");
+            printErr(argv[1]);
+            printErr(": Cannot find such file or directory\n");
+
+            exitProcess(1);
 
         } else {
+            char notExists = 1; //to check if the destination directory exists.
 
-            if (accessToFile(argv[2]) != 0) { //use the access syscall to check if the destination directory exists.
-                mycp_failed(argv[2]);
-            } else if (checkFileStat(argv[2]) != 1) { //use the stat syscall to check whether the destination is a directory or not.
-                printErr(argv[2]);
-                printErr(" is not a directory!\n");
-                exitProcess(0);
+            if (accessToFile(argv[2]) == 0) { //use the access syscall to check if the destination directory exists.
+                if (checkFileStat(argv[2]) != 1) { //use the stat syscall to check whether the destination is a directory or not.
+                    printErr(argv[2]);
+                    printErr(" is not a directory!\n");
+                    exitProcess(0);
+                }
+
+                notExists = 0;
             }
 
             if (!(strCompare(argv[1], argv[2]))) { //check if the source name and the destination name are same
@@ -493,6 +553,10 @@ int main(int argc, char **argv) {
                 printErr(argv[2]);
                 printErr(" are the same file.\n");
                 exitProcess(0);
+            }
+
+            if (notExists) {
+                makeDirectory(argv[2]); //create the destination directory.
             }
 
             int val = checkFileStat(argv[2]);
@@ -507,10 +571,6 @@ int main(int argc, char **argv) {
             }
         }
 
-    } else {
-        char usageMsg[38] = "Usage: ./mycp \"SOURCE\" \"DESTINATION\"\n";
-        printErr(usageMsg);
-        exitProcess(0);
     }
 
     return 1;
