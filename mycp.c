@@ -16,7 +16,10 @@
 #define MUNMAP_SYSCALL 11   //to unmap the dynamically mapped memory
 #define ACCESS_SYSCALL 21   //to check if the file exists
 #define EXIT_SYSCALL 60     //to terminate the process when the error occurred
+#define TRUNC_SYSCALL 76    //to truncate the file that is specified by the file path
+#define FTRUNC_SYSCALL 77   //to truncate the file that is specified by the file descriptor
 #define GETDENTS_SYSCALL 78 //to get the directory entries
+#define CHMOD_SYSCALL 90    //to change the mode(file permission) of the file
 
 #define OPEN_MODE (S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)
 
@@ -337,6 +340,53 @@ void exitProcess(int exitCode) {
 }
 
 /**
+ * This is a wrapper function of the truncate syscall.
+ * This function causes the regular file named by path to be truncated to a size of precisely length bytes.
+ *
+ * @param filePath the file path of the target file
+ * @param length the size to truncate
+ * @return On success, zero is returned. On error, some negative value, which depends to the error number, will be returned.
+ */
+int truncateFile(char *filePath, long length) {
+    long ret = -1;
+
+    asm("movq %1, %%rax\n\t" //%1 == (long) TRUNC_SYSCALL
+        "movq %2, %%rdi\n\t" //%2 == filePath
+        "movq %3, %%rsi\n\t" //%3 == length
+        "syscall\n\t"
+        "movq %%rax, %0\n\t" //%0 == ret
+        : "=r"(ret)
+        : "r"((long) TRUNC_SYSCALL), "r"(filePath), "r"(length)
+        : "%rax", "%rdi", "%rsi", "memory"
+    );
+
+    return ret;
+}
+
+/**
+ * This is a wrapper function of the ftruncate syscall.
+ * This function causes the regular file named by the file descriptor to be truncated to a size of precisely length bytes.
+ *
+ * @param fd the file descriptor of the target file
+ * @param length the size to truncate
+ * @return On success, zero is returned. On error, some negative value, which depends to the error number, will be returned.
+ */
+int ftruncateFile(int fd, long length) {
+    long ret = -1;
+
+    asm("movq %1, %%rax\n\t" //%1 == (long) TRUNC_SYSCALL
+        "movq %2, %%rdi\n\t" //%2 == (long) fd
+        "movq %3, %%rsi\n\t" //%3 == length
+        "syscall\n\t"
+        "movq %%rax, %0\n\t" //%0 == ret
+        : "=r"(ret)
+        : "r"((long)TRUNC_SYSCALL), "r"((long) fd), "r"(length)
+        : "%rax", "%rdi", "%rsi", "memory");
+
+    return ret;
+}
+
+/**
  * This function is a wrapper function of the getdents system call.
  * The system call getdents() reads several linux_dirent structures from
  * the directory referred to by the open file descriptor into the buffer.
@@ -349,7 +399,7 @@ void getDirectoryEntries(char *directoryName, long fd) {
     char d_type, buf[GETDENTS_SIZE];
     struct linux_dirent *ld;
 
-    for (;;) {
+    for (;;) { //use the endless loop, which will loop until the getdents syscall reads all files in the directory.
         /* 
          * If the system call success, the getdents syscall returns the number of bytes read. 
          * On end of directory, the getdents syscall returns 0. 
@@ -368,7 +418,7 @@ void getDirectoryEntries(char *directoryName, long fd) {
 
         if (nread == -1) {
             char errorMsg[40] = "Error occurred in the getdents syscall\n";
-            printOut(errorMsg); //print out the error message
+            printErr(errorMsg); //print out the error message
             break;
         } else if (nread == 0) { //check if the getdents syscall is on the end of the directory
             break;
