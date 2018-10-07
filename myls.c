@@ -9,6 +9,7 @@
 /* System call numbers */
 #define WRITE_SYSCALL 1      //to print out the output message of the ls command
 #define OPEN_SYSCALL 2       //to open the directory
+#define CLOSE_SYSCALL 3      //to close the opened directory or file
 #define STAT_SYSCALL 4       //to get the file stat of the specific file.
 #define MMAP_SYSCALL 9       //to implement the custom malloc
 #define MUNMAP_SYSCALL 11    //to unmap the dynamically mapped memory
@@ -438,6 +439,26 @@ void checkFilePermission(char *fp, mode_t mode) {
 }
 
 /**
+ * This is a wrapper function of the close syscall.
+ *
+ * @param fd the file descriptor of the opened file (or directory)
+ * @return Returns zero on success. On error, negative value would be returned, which will depend on the setted error number.
+ */
+int closeFile(long fd) {
+    long ret = -1;
+
+    asm("movq %1, %%rax\n\t" // %1 = (long) OPEN_SYSCALL
+        "movq %2, %%rdi\n\t" // %2 = fd
+        "syscall\n\t"
+        "movq %%rax, %0\n\t"
+        : "=r"(ret)
+        : "r"((long)OPEN_SYSCALL), "r"(fd)
+        : "%rax", "%rdi", "%rsi", "%rdx", "memory");
+
+    return ret;
+}
+
+/**
  * This function uses the syscall to get the stat of the specific file.
  *
  * @param fileName the name of the target file
@@ -462,8 +483,11 @@ int checkFileStat(char *fileName, char openFlag) {
 
     //use the bitwise operators to check if the current file is a directory and check if the program should call the open syscall
     if ( (S_IFDIR & mode) && openFlag) {
+
         int fd = openDirectory(fileName); //open the directory
         getDirectoryEntries(fileName, fd);
+        closeFile(fd); //close the directory
+
     } else {
 
         uid_t user = statBuffer.st_uid;        //user id
