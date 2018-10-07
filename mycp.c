@@ -151,10 +151,8 @@ int strlength(const char *str) {
  * @param s the pointer that points the string that contains the value that should be copied
  * @param length the length of the string that should be copied
  */
-void strcopy(char *str, const char *s, int length)
-{
-    for (int i = 0; i < length; i++)
-    {
+void strcopy(char *str, const char *s, int length) {
+    for (int i = 0; i < length; i++) {
         *str = *s;
         str += 1;
         s += 1;
@@ -294,7 +292,7 @@ int closeFile(long fd) {
         "syscall\n\t"
         "movq %%rax, %0\n\t"
         : "=r"(ret)
-        : "r"((long)OPEN_SYSCALL), "r"(fd)
+        : "r"((long) CLOSE_SYSCALL), "r"(fd)
         : "%rax", "%rdi", "%rsi", "%rdx", "memory");
 
     return ret;
@@ -342,7 +340,7 @@ int checkFileStat(char *name) {
         "syscall\n\t"
         "movq %%rax, %0\n\t"
         : "=r"(ret)
-        : "r"((long)STAT_SYSCALL), "r"(name), "r"(&statBuffer) //covert the type from int to long for the movq instruction
+        : "r"((long) STAT_SYSCALL), "r"(name), "r"(&statBuffer) //covert the type from int to long for the movq instruction
         : "%rax", "%rdi", "%rsi", "memory");
 
     if (ret != 0) { //0 will be stored in the ret only when the stat syscall success.
@@ -375,7 +373,7 @@ int accessToFile(char *fileName) {
         "syscall\n\t"
         "movq %%rax, %0\n\t"
         : "=r"(ret)
-        : "r"((long)ACCESS_SYSCALL), "r"(fileName), "r"((long)R_OK)
+        : "r"((long) ACCESS_SYSCALL), "r"(fileName), "r"((long)R_OK)
         : "%rax", "%rdi", "%rsi", "memory");
 
     return ret;
@@ -440,7 +438,7 @@ int ftruncateFile(int fd, long length) {
         "syscall\n\t"
         "movq %%rax, %0\n\t" //%0 == ret
         : "=r"(ret)
-        : "r"((long)TRUNC_SYSCALL), "r"((long) fd), "r"(length)
+        : "r"((long) FTRUNC_SYSCALL), "r"((long) fd), "r"(length)
         : "%rax", "%rdi", "%rsi", "memory");
 
     return ret;
@@ -472,7 +470,7 @@ void getDirectoryEntries(char *directoryName, long fd) {
             "syscall\n\t"
             "movq %%rax, %0\n\t"
             : "=r"(nread)
-            : "r"((long)GETDENTS_SYSCALL), "r"(fd), "r"(buf), "r"((unsigned long)GETDENTS_SIZE)
+            : "r"((long) GETDENTS_SYSCALL), "r"(fd), "r"(buf), "r"((unsigned long)GETDENTS_SIZE)
             : "%rax", "%rdi", "%rsi", "%rdx", "memory"
         );
 
@@ -625,20 +623,7 @@ int main(int argc, char **argv) {
                 printErr("mycp failed\n");
                 exitProcess(0);
             } else { //checkFileStat returns 1 when the target file is not a directory.
-                initHeap();
-
-                char *tempPath = strconcat(argv[2], "/");
-                char *path = strconcat(tempPath, argv[1]);
-
-                int fd = createFile(path); //create the file to the destination.
-
-                if (fd < 0) {
-                    terminateAndRemoveDir(notExists, argv[2]);
-                }
-
-                //TODO read and write
-
-                myUnMap(); //unmap the allocated virtual memory
+                //TODO non directory
             }
         }
 
