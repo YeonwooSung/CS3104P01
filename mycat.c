@@ -17,6 +17,7 @@
 
 /* preprocessor for the buffer size */
 #define BUF_SIZE 1024
+#define READ_SIZE 1023
 
 
 /**
@@ -205,7 +206,7 @@ void mycat(char *name) {
     char buffer[BUF_SIZE];
     int length;
     //Reads max 1023 byte at once.
-    while ((length = readFile(fd, buffer, BUF_SIZE - 1)) > 0) {
+    while ((length = readFile(fd, buffer, READ_SIZE)) > 0) {
         buffer[length] = '\0';
         writeText(buffer, 1);
     }
@@ -224,7 +225,7 @@ void readAndCatViaStdin() {
 
     int length;
     //Reads max 1023 byte at once.
-    while ((length = readFile(0, buffer, BUF_SIZE - 1)) > 0) {
+    while ((length = readFile(0, buffer, READ_SIZE)) > 0) {
         buffer[length] = '\0';
         writeText(buffer, 1);
     }
