@@ -40,14 +40,12 @@ int strlength(const char *str) {
  * @return i ((the number of digits) - 1)
  */
 int checkDigits(int num) {
-    int i = 0, j = 10;
-
-    while (j <= num) {
-        j *= 10;
-        i += 1;
+    int length = 1; // whenever its an integer, the smallest length should be 1
+    while (num >= 10) { // loops until number is greater than 10
+        num /= 10;
+        length++;
     }
-
-    return i;
+    return length;
 }
 
 /**
@@ -192,12 +190,7 @@ int checkFileStat(char *name, struct stat *statBuffer) {
         : "r"((long) STAT_SYSCALL), "r"(name), "r"(statBuffer) //covert the type from int to long for the movq instruction
         : "%rax", "%rdi", "%rsi", "memory");
 
-
-    if (statBuffer->st_mode & S_IFDIR) { //check if the file is directory
-        return 1;
-    }
-
-    return 0;
+    return ret;
 }
 
 /**
