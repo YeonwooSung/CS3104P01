@@ -195,15 +195,16 @@ char *strconcat(const char *str1, const char *str2) {
  *         respectively, to be less than, to match, or be greater than str2.
  */
 int strCompare(const char *str1, const char *str2) {
-    int i = 0, j = 0;
+    int i = 0;
 
     while (str1[i] != '\0') {
-        if (str1[i++] != str2[j++]) {
+        if (str1[i] != str2[i]) {
             break;
         }
+        i+= 1;
     }
 
-    return (str1[i] - str2[j]);
+    return (str1[i] - str2[i]);
 }
 
 /**
