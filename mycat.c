@@ -1,3 +1,5 @@
+#include <stdio.h>
+#include <unistd.h>
 #include <fcntl.h>
 #include <stdarg.h>
 #include <sys/stat.h>
@@ -46,33 +48,6 @@ int checkDigits(int num) {
         length++;
     }
     return length;
-}
-
-/**
- * This is my custom itoa function.
- * It converts the integer to the string.
- *
- * @param numString the character array to store the number string.
- */
-void itoa(char* numString, int num, int numberLength) {
-
-    if (num == 0) { //check if the given number is 0
-        numString[0] = '0';
-    } else { // when number is not zero
-
-        for (int i = numberLength - 1; i >= 0; i--) {
-            if (num == 0) {
-                break; // end the loop when number is 0
-            }
-
-            int remainder = num % 10;          // finds the remainder (digit) when divided by 10
-            numString[i] = remainder + '0';    // append the digit by casting it to char
-            num /= 10;                         // divide the number by 10 to get the next digit
-        }
-    }
-
-    numString[numberLength] = '\0'; // append a NULL char at the last index
-    return;
 }
 
 /**
@@ -227,10 +202,11 @@ void mycat(char *name) {
         return;
     }
 
-    char buffer[BUF_SIZE]; // initialize the buffer
-
-    //Reads 1024 byte at once.
-    while (readFile(fd, buffer, BUF_SIZE) > 0) {
+    char buffer[BUF_SIZE];
+    int length;
+    //Reads max 1023 byte at once.
+    while ((length = readFile(fd, buffer, BUF_SIZE - 1)) > 0) {
+        buffer[length] = '\0';
         writeText(buffer, 1);
     }
 
@@ -244,10 +220,12 @@ void mycat(char *name) {
  * This function will read the string via stdin stream, and print out the read string via stdout stream.
  */
 void readAndCatViaStdin() {
-    int length;            // length to store the buffer size
-    char buffer[BUF_SIZE]; // initialize the buffer
+    char buffer[BUF_SIZE]; //initialize the buffer
 
-    while ((length = readFile(0, buffer, BUF_SIZE))) { //0 is for the stdin stream
+    int length;
+    //Reads max 1023 byte at once.
+    while ((length = readFile(0, buffer, BUF_SIZE - 1)) > 0) {
+        buffer[length] = '\0';
         writeText(buffer, 1);
     }
     return;
