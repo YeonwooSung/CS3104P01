@@ -234,11 +234,10 @@ void mycat(char *name) {
         return;
     }
 
-    int length;            // length to store the buffer size
     char buffer[BUF_SIZE]; // initialize the buffer
 
     //Reads 1024 byte at once.
-    while ((length = readFile(fd, buffer, BUF_SIZE)) >= 0) {
+    while (readFile(fd, buffer, BUF_SIZE) > 0) {
         writeText(buffer, 1);
     }
 
