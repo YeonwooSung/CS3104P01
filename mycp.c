@@ -40,7 +40,7 @@
  * @reference http://man7.org/linux/man-pages/man2/getdents.2.html
  */
 struct linux_dirent {
-    long d_ino;              /* Inode number */
+    long d_ino;              /* The inode number */
     off_t d_off;             /* Offset to next linux_dirent */
     unsigned short d_reclen; /* Length of this linux_dirent */
     char d_name[];           /* Filename (null-terminated) */
@@ -226,7 +226,7 @@ int writeText(const char *text, long handle) {
         "syscall\n\t"
         "movq %%rax, %0\n\t" // %0 == ret
         : "=r"(ret)          /* if the syscall success, 1 will be stored in the ret. */
-        : "r"((long)WRITE_SYSCALL), "r"(handle), "r"(text), "r"(len)
+        : "r"((long) WRITE_SYSCALL), "r"(handle), "r"(text), "r"(len)
         : "%rax", "%rdi", "%rsi", "%rdx", "memory");
 
     return ret;
@@ -272,7 +272,7 @@ int openFile(char *name) {
         "syscall\n\t"
         "movq %%rax, %0\n\t"
         : "=r"(ret)
-        : "r"((long)OPEN_SYSCALL), "r"(name), "r"((long)flag), "r"((long)mode)
+        : "r"((long) OPEN_SYSCALL), "r"(name), "r"((long)flag), "r"((long)mode)
         : "%rax", "%rdi", "%rsi", "%rdx", "memory");
 
     return ret;
@@ -317,7 +317,7 @@ int readFile(unsigned int fd, char *buf, long count) {
         "syscall\n\t"
         "movq %%rax, %0\n\t"
         : "=r"(ret)
-        : "r"((long)READ_SYSCALL), "r"((long) fd), "r"(buf), "r"(count) //convert the type from int to long for the movq instruction
+        : "r"((long) READ_SYSCALL), "r"((long) fd), "r"(buf), "r"(count) //convert the type from int to long for the movq instruction
         : "%rax", "%rdi", "%rsi", "%rdx", "memory");
 
     return ret;
@@ -552,7 +552,7 @@ int removeDirectory(char *name) {
         "syscall\n\t"
         "movq %%rax, %0\n\t" //%0 == ret
         : "=r"(ret)
-        : "r"((long)RMDIR_SYSCALL), "r"(name)
+        : "r"((long) RMDIR_SYSCALL), "r"(name)
         : "%rax", "%rdi", "memory");
 
     return ret;
@@ -602,7 +602,7 @@ int main(int argc, char **argv) {
                 notExists = 0;
             }
 
-            if (!(strCompare(argv[1], argv[2]))) { //check if the source name and the destination name are same
+            if (strCompare(argv[1], argv[2]) == 0) { //check if the source name and the destination name are same
                 printErr("mycp: ");
                 printErr(argv[1]);
                 printErr(" and ");
