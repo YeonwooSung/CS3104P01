@@ -212,8 +212,6 @@ void mycat(char *name) {
     }
 
     closeFile(fd);
-
-    return;
 }
 
 /** 
