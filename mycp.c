@@ -208,6 +208,28 @@ int strCompare(const char *str1, const char *str2) {
 }
 
 /**
+ * This function uses the stat syscall to check if the given name of file is a directory or a file.
+ *
+ * @param name the name of the file (or directory)
+ * @param statBuffer the buffer to store the file stat
+ * @return If the stat syscall fails, returns -1. If the given file is a directory, returns 1. Otherwise, returns 0.
+ */
+int checkFileStat(char *name, struct stat *statBuffer) {
+    long ret = -1;
+
+    asm("movq %1, %%rax\n\t" // %1 = (long) STAT_SYSCALL
+        "movq %2, %%rdi\n\t" // %2 = fileName
+        "movq %3, %%rsi\n\t" // %3 = statBuffer
+        "syscall\n\t"
+        "movq %%rax, %0\n\t"
+        : "=r"(ret)
+        : "r"((long)STAT_SYSCALL), "r"(name), "r"(statBuffer) //covert the type from int to long for the movq instruction
+        : "%rax", "%rdi", "%rsi", "memory");
+
+    return ret;
+}
+
+/**
  * This function is a wrapper function of the write syscall.
  * This function uses the inline assembly function to make interaction with the kernel more explicit.
  * To implement this function, I reused the given code, which is written by Kasim Terzic.
@@ -325,15 +347,15 @@ int readFile(unsigned int fd, char *buf, long count) {
 }
 
 /**
- * This function uses the stat syscall to check if the given name of file is a directory or a file.
+ * This is a wrapper function of the stat syscall.
+ * It checks the file stat of the particular file.
  *
- * @param name the name of the file (or directory)
- * @return If the stat syscall fails, returns -1. If the given file is a directory, returns 1. Otherwise, returns 0.
+ * @param name the name of the file
+ * @param statBuffer the buffer that stores the file stat
+ * @return On success, 0 is returned. On error, -1 is returned, and errno is set appropriately.
  */
-int checkFileStat(char *name) {
+int myFileStat(char *name, struct stat *statBuffer) {
     long ret = -1;
-
-    struct stat statBuffer;
 
     asm("movq %1, %%rax\n\t" // %1 = (long) STAT_SYSCALL
         "movq %2, %%rdi\n\t" // %2 = fileName
@@ -341,8 +363,24 @@ int checkFileStat(char *name) {
         "syscall\n\t"
         "movq %%rax, %0\n\t"
         : "=r"(ret)
-        : "r"((long) STAT_SYSCALL), "r"(name), "r"(&statBuffer) //covert the type from int to long for the movq instruction
-        : "%rax", "%rdi", "%rsi", "memory");
+        : "r"((long)STAT_SYSCALL), "r"(name), "r"(statBuffer) //covert the type from int to long for the movq instruction
+        : "%rax", "%rdi", "%rsi", "memory"
+    );
+
+    return ret;
+}
+
+/**
+ * This checks if the given name of file is a directory or a file.
+ *
+ * @param name the name of the file (or directory)
+ * @return If the stat syscall fails, returns -1. If the given file is a directory, returns 1. Otherwise, returns 0.
+ */
+int checkFileStat(char *name) {
+
+    struct stat statBuffer;
+
+    int ret = myFileStat(name, &statBuffer);
 
     if (ret != 0) { //0 will be stored in the ret only when the stat syscall success.
         printErr("Failed to get the stat of ");
@@ -572,6 +610,52 @@ void terminateAndRemoveDir(char generated, char *name) {
     exitProcess(0);
 }
 
+/**
+ * This function copies the target file to the file, which is corresponding to the given file descriptor.
+ *
+ * @param name the name of the target file.
+ * @param destination_fd the file descriptor of the destination file.
+ */
+void copyFile(char *name, int destination_fd) {
+    struct stat stats; // declares struct stat to store stat of argument
+    int stat = checkFileStat(name, &stats);
+
+    if (stat != 0) { //if the stat syscall fails, some negative value will be returned
+        writeText("mycp: cannot access '", 1);
+        writeText(name, 1);
+        writeText("' : No such file or directory\n", 1);
+        return;
+    }
+
+    int fd = openFile(name);
+
+    if (fd < 0) { //check if the open syscall fails
+
+        writeText("mycp: cannot access '", 1);
+        writeText(name, 1);
+        writeText("' : Permission denied\n", 1);
+        return;
+    }
+
+    if (S_ISDIR(stats.st_mode)) { //when the given file is a directory
+        writeText("mycp: ", 1);
+        writeText(name, 1);
+        writeText(": Is a directory\n", 1);
+        return;
+    }
+
+    char buffer[READ_SIZE + 1];
+    int length;
+
+    //Reads maximum 4096 bytes at once.
+    while ((length = readFile(fd, buffer, READ_SIZE)) > 0) {
+        buffer[length] = '\0';
+        writeText(buffer, 1);
+    }
+
+    closeFile(fd); //close the opened file.
+}
+
 /* mycp is a program that copies the source to the destination recursively. */
 int main(int argc, char **argv) {
 
@@ -624,7 +708,8 @@ int main(int argc, char **argv) {
                 printErr("mycp failed\n");
                 exitProcess(0);
             } else { //checkFileStat returns 1 when the target file is not a directory.
-                //TODO non directory
+                //TODO open the destination directory, create target file, and open the file -> replace 1 to fd
+                copyFile(argv[1], 1);
             }
         }
 
