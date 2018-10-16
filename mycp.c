@@ -594,7 +594,17 @@ void copyFile(char *name, char *destName, char *destDir) {
 
     int fd = openFile(destName);
 
+    int readFd = openFile(name);
+
     if (fd < 0) {
+        //Print out the error message
+        writeText("mycp: cannot access '", 1);
+        writeText(destName, 1);
+        writeText("' : Permission denied\n", 1);
+
+        removeFile(destName); //use the wrapper function of the unlink syscall to remove the file.
+        terminateAndRemoveDir(1, destDir);
+    } else if (readFd < 0) {
         //Print out the error message
         writeText("mycp: cannot access '", 1);
         writeText(name, 1);
@@ -615,9 +625,10 @@ void copyFile(char *name, char *destName, char *destDir) {
     int length;
 
     //Reads maximum 4096 bytes at once.
-    while ((length = readFile(fd, buffer, READ_SIZE)) > 0) {
+    while ((length = readFile(readFd, buffer, READ_SIZE)) > 0) {
         buffer[length] = '\0';
-        writeText(buffer, 1);
+        writeText(buffer, fd);
+        //TODO writeText writes some dummy string to the target file..
     }
 
     struct stat newStat;
@@ -628,7 +639,11 @@ void copyFile(char *name, char *destName, char *destDir) {
      * truncate the new file with the original file's length
      */
     if (newStat.st_size != stats.st_size) {
-        truncateFile(destName, stats.st_size);
+        int truncVal = truncateFile(destName, stats.st_size);
+
+        if (truncVal < 0) { //if the trunc fails, try again with the ftrunc syscall.
+            ftruncateFile(fd, stats.st_size);
+        }
     }
 
     //change the file permission of the new file with the file permission mode of the original file.
@@ -639,16 +654,17 @@ void copyFile(char *name, char *destName, char *destDir) {
 
 /**
  * This function is a wrapper function of the getdents system call.
- * The system call getdents() reads several linux_dirent structures from
- * the directory referred to by the open file descriptor into the buffer.
+ * //TODO
  *
- * @param fd the file descriptor of the target directory
+ * @param directoryName the name of the target directory.
+ * @param destinationName the name of the destination directory.
  */
-void getDirectoryEntries(char *directoryName, long fd) {
+void getDirectoryEntries(char *directoryName, char *destinationName) {
     long nread = -1;
     int bpos;
     char d_type, buf[GETDENTS_SIZE];
     struct linux_dirent *ld;
+    long fd = openFile(directoryName);
 
     for (;;) { //use the endless loop, which will loop until the getdents syscall reads all files in the directory.
         /* 
@@ -677,7 +693,29 @@ void getDirectoryEntries(char *directoryName, long fd) {
         for (bpos = 0; bpos < nread;) {
             ld = (struct linux_dirent *)(buf + bpos);
 
-            //TODO iterate the directories
+            if ((strCompare(ld->d_name, ".") != 0) && strCompare(ld->d_name, "..")) {
+                //create new string, which will be the path name of the copied file.
+                char *tempName = strconcat(destinationName, "/");
+                char *newFileName = strconcat(tempName, ld->d_name);
+
+                //create new string, which is the path name of the current file.
+                char *tempPath = strconcat(directoryName, "/");
+                char *path = strconcat(tempPath, ld->d_name);
+
+                /* The d_type is a byte at the end of the structure that indicates the file type. */
+                d_type = *(buf + bpos + ld->d_reclen - 1);
+
+                if (d_type != DT_DIR) {
+                    //if the current file is not a directory, call the copyFile() to copy this file to the destination.
+                    copyFile(path, newFileName, destinationName);
+                } else {
+                    //if the current file is a directory, make a new directory.
+                    makeDirectory(newFileName);
+
+                    //then call the getDirectoryEntries() itself recursively for the recursive copy.
+                    getDirectoryEntries(path, newFileName);
+                }
+            }
 
             bpos += ld->d_reclen;
         }
@@ -729,10 +767,11 @@ int main(int argc, char **argv) {
             checkFileStat(argv[1], &fileStat);
             int val = (fileStat.st_mode & S_IFDIR) ? 1 : 0;
 
-            initHeap();
-
             struct stat stats;
-            int ret = checkFileStat(argv[2], &stats);
+            if (checkFileStat(argv[2], &stats) < 0) {
+                printErr("mycp failed\n");
+                exitProcess(0);
+            }
 
             if ((stats.st_mode & S_IFDIR) == 0) {
                 printErr("mycp: ");
@@ -741,14 +780,10 @@ int main(int argc, char **argv) {
                 exitProcess(0);
             }
 
+            initHeap();
+
             if (val > 0) { //checkFileStat returns 1 when the target file is a directory
-                //TODO directory
-            } else if (ret < 0) { //when the ret < 0, error is occurred in the stat syscall
-
-                printErr("mycp failed\n");
-                myUnMap();
-                exitProcess(0);
-
+                getDirectoryEntries(argv[1], argv[2]);
             } else { //checkFileStat returns 1 when the target file is not a directory.
 
                 char *name = strconcat(argv[2], "/");
