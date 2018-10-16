@@ -201,17 +201,45 @@ char *strconcat(const char *str1, const char *str2) {
 }
 
 /**
+ * This function opens the file by using the syscall.
+ * The openDirectory() will be used to open the directory for the ls command.
+ * This function uses the extended inline assembler to make interaction with the kernel more explicit.
+ * 
+ * @param name the name of the directory that should be opened for the ls command
+ * @return ret If the syscall success, the lowest numbered unused file descriptor will be returned. Otherwise, returns some negative value.
+ */
+int openDirectory(char *name) {
+    long ret = -1;
+    int flag = O_RDONLY;
+    int mode = OPEN_MODE;
+
+    asm("movq %1, %%rax\n\t" // %1 = (long) OPEN_SYSCALL
+        "movq %2, %%rdi\n\t" // %2 = name
+        "movq %3, %%rsi\n\t" // %3 = flag
+        "movq %4, %%rdx\n\t" // %4 = mode
+        "syscall\n\t"
+        "movq %%rax, %0\n\t"
+        : "=r"(ret)
+        : "r"((long)OPEN_SYSCALL), "r"(name), "r"((long)flag), "r"((long)mode) //convert the type from int to long for the movq instruction
+        : "%rax", "%rdi", "%rsi", "%rdx", "memory");
+
+    return ret;
+}
+
+/**
  * This function is a wrapper function of the getdents system call.
  * The system call getdents() reads several linux_dirent structures from
  * the directory referred to by the open file descriptor into the buffer.
  *
- * @param fd the file descriptor of the target directory
+ * @param directoryName the name of the target directory.
  */
-void getDirectoryEntries(char *directoryName, long fd) {
+void getDirectoryEntries(char *directoryName) {
     long nread = -1;
     int bpos;
     char buf[GETDENT_BUFFER_SIZE];
     struct linux_dirent *ld;
+
+    long fd = openDirectory(directoryName);
 
     for (;;) {
         /* 
@@ -256,32 +284,6 @@ void getDirectoryEntries(char *directoryName, long fd) {
         }
 
     }
-}
-
-/**
- * This function opens the file by using the syscall.
- * The openDirectory() will be used to open the directory for the ls command.
- * This function uses the extended inline assembler to make interaction with the kernel more explicit.
- * 
- * @param name the name of the directory that should be opened for the ls command
- * @return ret If the syscall success, the lowest numbered unused file descriptor will be returned. Otherwise, returns some negative value.
- */
-int openDirectory(char *name) {
-    long ret = -1;
-    int flag = O_RDONLY;
-    int mode = OPEN_MODE;
-
-    asm("movq %1, %%rax\n\t" // %1 = (long) OPEN_SYSCALL
-        "movq %2, %%rdi\n\t" // %2 = name
-        "movq %3, %%rsi\n\t" // %3 = flag
-        "movq %4, %%rdx\n\t" // %4 = mode
-        "syscall\n\t"
-        "movq %%rax, %0\n\t"
-        : "=r"(ret)
-        : "r"((long)OPEN_SYSCALL), "r"(name), "r"((long)flag), "r"((long)mode) //convert the type from int to long for the movq instruction
-        : "%rax", "%rdi", "%rsi", "%rdx", "memory");
-
-    return ret;
 }
 
 /**
@@ -485,7 +487,7 @@ int checkFileStat(char *fileName, char openFlag) {
     if ( (S_IFDIR & mode) && openFlag) {
 
         int fd = openDirectory(fileName); //open the directory
-        getDirectoryEntries(fileName, fd);
+        getDirectoryEntries(fileName);
         closeFile(fd); //close the directory
 
     } else {
