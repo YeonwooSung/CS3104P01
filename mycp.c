@@ -707,6 +707,9 @@ int main(int argc, char **argv) {
 
             if (accessToFile(argv[2]) == 0) { //use the access syscall to check if the destination directory exists.
                 notExists = 0;
+            } else {
+                struct stat stats;
+                int val = checkFileStat(argv[2], &stats);
             }
 
             if (strCompare(argv[1], argv[2]) == 0) { //check if the source name and the destination name are same
@@ -722,14 +725,25 @@ int main(int argc, char **argv) {
                 makeDirectory(argv[2]); //create the destination directory.
             }
 
+            struct stat fileStat;
+            checkFileStat(argv[1], &fileStat);
+            int val = (fileStat.st_mode & S_IFDIR) ? 1 : 0;
+
             initHeap();
 
             struct stat stats;
-            int val = checkFileStat(argv[2], &stats);
+            int ret = checkFileStat(argv[2], &stats);
+
+            if ((stats.st_mode & S_IFDIR) == 0) {
+                printErr("mycp: ");
+                printErr(argv[2]);
+                printErr(" is not a directory: DESTINATION should be a directory!\n");
+                exitProcess(0);
+            }
 
             if (val > 0) { //checkFileStat returns 1 when the target file is a directory
                 //TODO directory
-            } else if (val != 0) { //when the val < 0, error is occurred in the stat syscall
+            } else if (ret < 0) { //when the ret < 0, error is occurred in the stat syscall
 
                 printErr("mycp failed\n");
                 myUnMap();
