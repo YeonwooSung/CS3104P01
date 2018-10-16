@@ -380,57 +380,6 @@ int removeFile(char *name) {
 }
 
 /**
- * This is a wrapper function of the stat syscall.
- * It checks the file stat of the particular file.
- *
- * @param name the name of the file
- * @param statBuffer the buffer that stores the file stat
- * @return On success, 0 is returned. On error, -1 is returned, and errno is set appropriately.
- */
-int myFileStat(char *name, struct stat *statBuffer) {
-    long ret = -1;
-
-    asm("movq %1, %%rax\n\t" // %1 = (long) STAT_SYSCALL
-        "movq %2, %%rdi\n\t" // %2 = name
-        "movq %3, %%rsi\n\t" // %3 = statBuffer
-        "syscall\n\t"
-        "movq %%rax, %0\n\t"
-        : "=r"(ret)
-        : "r"((long)STAT_SYSCALL), "r"(name), "r"(statBuffer) //covert the type from int to long for the movq instruction
-        : "%rax", "%rdi", "%rsi", "memory"
-    );
-
-    return ret;
-}
-
-/**
- * This checks if the given name of file is a directory or a file.
- *
- * @param name the name of the file (or directory)
- * @return If the stat syscall fails, returns -1. If the given file is a directory, returns 1. Otherwise, returns 0.
- */
-int checkFileStat(char *name) {
-
-    struct stat statBuffer;
-
-    int ret = myFileStat(name, &statBuffer);
-
-    if (ret != 0) { //0 will be stored in the ret only when the stat syscall success.
-        printErr("Failed to get the stat of ");
-        printErr(name);
-        printErr("\n");
-
-        return -1;
-    }
-
-    if (statBuffer.st_mode & S_IFDIR) { //check if the file is directory
-        return 1;
-    }
-
-    return 0;
-}
-
-/**
  * This is a wrapper function of the access syscall.
  *
  * @param fileName the name of the file to check if it exists
@@ -604,7 +553,7 @@ void terminateAndRemoveDir(char generated, char *name) {
  */
 void copyFile(char *name, char *destName, char *destDir) {
     struct stat stats; // declares struct stat to store stat of argument
-    int stat = myFileStat(name, &stats);
+    int stat = checkFileStat(name, &stats);
 
     if (stat != 0) { //if the stat syscall fails, some negative value will be returned
         writeText("mycp: cannot access '", 1);
@@ -647,7 +596,7 @@ void copyFile(char *name, char *destName, char *destDir) {
     }
 
     struct stat newStat;
-    myFileStat(destName, &newStat);
+    checkFileStat(destName, &newStat);
 
     /* 
      * If the size of the original file and new file are different,
@@ -751,7 +700,8 @@ int main(int argc, char **argv) {
                 makeDirectory(argv[2]); //create the destination directory.
             }
 
-            int val = checkFileStat(argv[2]);
+            struct stat stats;
+            int val = checkFileStat(argv[2], &stats);
 
             if (val > 0) { //checkFileStat returns 1 when the target file is a directory
                 //TODO directory
