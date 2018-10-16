@@ -22,6 +22,7 @@
 #define MKDIR_SYSCALL 83    //to make the directory
 #define RMDIR_SYSCALL 84    //to remove the directory
 #define CREAT_SYSCALL 85    //to create the file
+#define UNLINK_SYSCALL 87   //to remove the file from the file system
 #define CHMOD_SYSCALL 90    //to change the mode(file permission) of the file
 
 /* preprocessors for the file permission mode */
@@ -45,6 +46,16 @@ struct linux_dirent {
     unsigned short d_reclen; /* Length of this linux_dirent */
     char d_name[];           /* Filename (null-terminated) */
 };
+
+/*
+ * A linked list to store directory names.
+ */
+typedef struct file_list {
+    char *rDirPath;           /* The path of the directory that the program should read files in it */
+    char *wDirPath;           /* The path of the directory that the program should write new file */
+    struct file_list *next;   /* The pointer points to the next node of the linked list */
+    int fd;                   /* The file descriptor of the file */
+} List;
 
 
 /* The global variables for the custom memory allocating function */
@@ -347,6 +358,28 @@ int readFile(unsigned int fd, char *buf, long count) {
 }
 
 /**
+ * This function is a wrapper function of the unlink syscall.
+ * This function removes the file from the file system.
+ *
+ * @param name the file path name of the target file.
+ * @return On success, 0 is returned. On error, some negative value will be returned.
+ */
+int removeFile(char *name) {
+    long ret = -1;
+
+    asm("movq %1, %%rax\n\t" // %1 = (long) UNLINK_SYSCALL
+        "movq %2, %%rdi\n\t" // %2 = name
+        "syscall\n\t"
+        "movq %%rax, %0\n\t"
+        : "=r"(ret)
+        : "r"((long) UNLINK_SYSCALL), "r"(name)
+        : "%rax", "%rdi", "memory"
+    );
+
+    return ret;
+}
+
+/**
  * This is a wrapper function of the stat syscall.
  * It checks the file stat of the particular file.
  *
@@ -358,7 +391,7 @@ int myFileStat(char *name, struct stat *statBuffer) {
     long ret = -1;
 
     asm("movq %1, %%rax\n\t" // %1 = (long) STAT_SYSCALL
-        "movq %2, %%rdi\n\t" // %2 = fileName
+        "movq %2, %%rdi\n\t" // %2 = name
         "movq %3, %%rsi\n\t" // %3 = statBuffer
         "syscall\n\t"
         "movq %%rax, %0\n\t"
@@ -484,54 +517,6 @@ int ftruncateFile(int fd, long length) {
 }
 
 /**
- * This function is a wrapper function of the getdents system call.
- * The system call getdents() reads several linux_dirent structures from
- * the directory referred to by the open file descriptor into the buffer.
- *
- * @param fd the file descriptor of the target directory
- */
-void getDirectoryEntries(char *directoryName, long fd) {
-    long nread = -1;
-    int bpos;
-    char d_type, buf[GETDENTS_SIZE];
-    struct linux_dirent *ld;
-
-    for (;;) { //use the endless loop, which will loop until the getdents syscall reads all files in the directory.
-        /* 
-         * If the system call success, the getdents syscall returns the number of bytes read. 
-         * On end of directory, the getdents syscall returns 0. 
-         * Otherwise, it returns -1.
-         */
-        asm("movq %1, %%rax\n\t" // %1 = (long) OPEN_SYSCALL
-            "movq %2, %%rdi\n\t" // %2 = fd
-            "movq %3, %%rsi\n\t" // %3 = buf
-            "movq %4, %%rdx\n\t" // %4 = (long) GETDENT_BUFFER_SIZE
-            "syscall\n\t"
-            "movq %%rax, %0\n\t"
-            : "=r"(nread)
-            : "r"((long) GETDENTS_SYSCALL), "r"(fd), "r"(buf), "r"((unsigned long)GETDENTS_SIZE)
-            : "%rax", "%rdi", "%rsi", "%rdx", "memory"
-        );
-
-        if (nread == -1) {
-            char errorMsg[40] = "Error occurred in the getdents syscall\n";
-            printErr(errorMsg); //print out the error message
-            break;
-        } else if (nread == 0) { //check if the getdents syscall is on the end of the directory
-            break;
-        }
-
-        for (bpos = 0; bpos < nread;) {
-            ld = (struct linux_dirent *)(buf + bpos);
-
-            //TODO iterate the directories
-
-            bpos += ld->d_reclen;
-        }
-    }
-}
-
-/**
  * This is a wrapper function of the creat syscall.
  * It creates the file with a given path name.
  *
@@ -614,11 +599,12 @@ void terminateAndRemoveDir(char generated, char *name) {
  * This function copies the target file to the file, which is corresponding to the given file descriptor.
  *
  * @param name the name of the target file.
- * @param destination_fd the file descriptor of the destination file.
+ * @param destName the path name of the destination file.
+ * @param destDir the name of the destination directory.
  */
-void copyFile(char *name, int destination_fd) {
+void copyFile(char *name, char *destName, char *destDir) {
     struct stat stats; // declares struct stat to store stat of argument
-    int stat = checkFileStat(name, &stats);
+    int stat = myFileStat(name, &stats);
 
     if (stat != 0) { //if the stat syscall fails, some negative value will be returned
         writeText("mycp: cannot access '", 1);
@@ -627,14 +613,21 @@ void copyFile(char *name, int destination_fd) {
         return;
     }
 
-    int fd = openFile(name);
+    //if the createFile function returns negative value, it means that the creat syscall failed
+    if (createFile(destName) < 0) {
+        terminateAndRemoveDir(1, destDir);
+    }
 
-    if (fd < 0) { //check if the open syscall fails
+    int fd = openFile(destName);
 
+    if (fd < 0) {
+        //Print out the error message
         writeText("mycp: cannot access '", 1);
         writeText(name, 1);
         writeText("' : Permission denied\n", 1);
-        return;
+
+        removeFile(destName); //use the wrapper function of the unlink syscall to remove the file.
+        terminateAndRemoveDir(1, destDir);
     }
 
     if (S_ISDIR(stats.st_mode)) { //when the given file is a directory
@@ -653,7 +646,65 @@ void copyFile(char *name, int destination_fd) {
         writeText(buffer, 1);
     }
 
+    struct stat newStat;
+    myFileStat(destName, &newStat);
+
+    /* 
+     * If the size of the original file and new file are different,
+     * truncate the new file with the original file's length
+     */
+    if (newStat.st_size != stats.st_size) {
+        truncateFile(destName, stats.st_size);
+    }
+
     closeFile(fd); //close the opened file.
+}
+
+/**
+ * This function is a wrapper function of the getdents system call.
+ * The system call getdents() reads several linux_dirent structures from
+ * the directory referred to by the open file descriptor into the buffer.
+ *
+ * @param fd the file descriptor of the target directory
+ */
+void getDirectoryEntries(char *directoryName, long fd) {
+    long nread = -1;
+    int bpos;
+    char d_type, buf[GETDENTS_SIZE];
+    struct linux_dirent *ld;
+
+    for (;;) { //use the endless loop, which will loop until the getdents syscall reads all files in the directory.
+        /* 
+         * If the system call success, the getdents syscall returns the number of bytes read. 
+         * On end of directory, the getdents syscall returns 0. 
+         * Otherwise, it returns -1.
+         */
+        asm("movq %1, %%rax\n\t" // %1 = (long) OPEN_SYSCALL
+            "movq %2, %%rdi\n\t" // %2 = fd
+            "movq %3, %%rsi\n\t" // %3 = buf
+            "movq %4, %%rdx\n\t" // %4 = (long) GETDENT_BUFFER_SIZE
+            "syscall\n\t"
+            "movq %%rax, %0\n\t"
+            : "=r"(nread)
+            : "r"((long)GETDENTS_SYSCALL), "r"(fd), "r"(buf), "r"((unsigned long)GETDENTS_SIZE)
+            : "%rax", "%rdi", "%rsi", "%rdx", "memory");
+
+        if (nread == -1) {
+            char errorMsg[40] = "Error occurred in the getdents syscall\n";
+            printErr(errorMsg); //print out the error message
+            break;
+        } else if (nread == 0) { //check if the getdents syscall is on the end of the directory
+            break;
+        }
+
+        for (bpos = 0; bpos < nread;) {
+            ld = (struct linux_dirent *)(buf + bpos);
+
+            //TODO iterate the directories
+
+            bpos += ld->d_reclen;
+        }
+    }
 }
 
 /* mycp is a program that copies the source to the destination recursively. */
@@ -705,11 +756,15 @@ int main(int argc, char **argv) {
             if (val > 0) { //checkFileStat returns 1 when the target file is a directory
                 //TODO directory
             } else if (val != 0) { //when the val < 0, error is occurred in the stat syscall
+
                 printErr("mycp failed\n");
                 exitProcess(0);
+
             } else { //checkFileStat returns 1 when the target file is not a directory.
-                //TODO open the destination directory, create target file, and open the file -> replace 1 to fd
-                copyFile(argv[1], 1);
+
+                char *name = strconcat(argv[2], "/");
+                char *newName = strconcat(name, argv[1]);
+                copyFile(argv[1], newName, argv[2]);
             }
         }
 
