@@ -210,7 +210,7 @@ char *strconcat(const char *str1, const char *str2) {
 void getDirectoryEntries(char *directoryName, long fd) {
     long nread = -1;
     int bpos;
-    char d_type, buf[GETDENT_BUFFER_SIZE];
+    char buf[GETDENT_BUFFER_SIZE];
     struct linux_dirent *ld;
 
     for (;;) {
