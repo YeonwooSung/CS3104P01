@@ -139,6 +139,30 @@ void *mysbrk(size_t size) {
 }
 
 /**
+ * This is a wrapper function of chmod syscall.
+ * Basically, this function changes the file permission mode of the particular file.
+ *
+ * @param name the path name of the file
+ * @param mode the new file permission mode
+ * @return On success, zero is returned. Otherwise, some negative value will be returned.
+ */
+int my_chmod(char *name, mode_t mode) {
+    long ret = -1;
+
+    asm("movq %1, %%rax\n\t" // %1 = (long) CHMOD_SYSCALL
+        "movq %2, %%rdi\n\t" // %2 = name
+        "movq %3, %%rsi\n\t" // %3 = mode
+        "syscall\n\t"
+        "movq %%rax, %0\n\t"
+        : "=r"(ret)
+        : "r"((long) CHMOD_SYSCALL), "r"(name), "r"((long)mode)
+        : "%rax", "%rdi", "%rsi", "memory"
+    );
+
+    return ret;
+}
+
+/**
  * The custom strlen function.
  *
  * @param str the string to check it's length
@@ -541,6 +565,7 @@ void terminateAndRemoveDir(char generated, char *name) {
     if (generated) {
         removeDirectory(name);
     }
+    myUnMap();
     exitProcess(0);
 }
 
@@ -605,6 +630,9 @@ void copyFile(char *name, char *destName, char *destDir) {
     if (newStat.st_size != stats.st_size) {
         truncateFile(destName, stats.st_size);
     }
+
+    //change the file permission of the new file with the file permission mode of the original file.
+    my_chmod(destName, stats.st_mode);
 
     closeFile(fd); //close the opened file.
 }
@@ -678,12 +706,6 @@ int main(int argc, char **argv) {
             char notExists = 1; //to check if the destination directory exists.
 
             if (accessToFile(argv[2]) == 0) { //use the access syscall to check if the destination directory exists.
-                if (checkFileStat(argv[2]) != 1) { //use the stat syscall to check whether the destination is a directory or not.
-                    printErr(argv[2]);
-                    printErr(" is not a directory!\n");
-                    exitProcess(0);
-                }
-
                 notExists = 0;
             }
 
@@ -700,6 +722,8 @@ int main(int argc, char **argv) {
                 makeDirectory(argv[2]); //create the destination directory.
             }
 
+            initHeap();
+
             struct stat stats;
             int val = checkFileStat(argv[2], &stats);
 
@@ -708,6 +732,7 @@ int main(int argc, char **argv) {
             } else if (val != 0) { //when the val < 0, error is occurred in the stat syscall
 
                 printErr("mycp failed\n");
+                myUnMap();
                 exitProcess(0);
 
             } else { //checkFileStat returns 1 when the target file is not a directory.
@@ -716,6 +741,8 @@ int main(int argc, char **argv) {
                 char *newName = strconcat(name, argv[1]);
                 copyFile(argv[1], newName, argv[2]);
             }
+
+            myUnMap();
         }
 
     }
