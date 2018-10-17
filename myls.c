@@ -72,6 +72,9 @@ int printOut(char *);             //a wrapper function of write() system call.
 int checkFileStat(char *, char);  //a wrapper function of stat() system call.
 int openDirectory(char *);        //a wrapper function of open() system call.
 
+/* The string array for the months */
+const char *months[12] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+
 /**
  * This function initialises the global variables for the custom memory allocating function.
  * The mmap syscall is used to initialise the custom heap memory.
@@ -293,44 +296,7 @@ void getDirectoryEntries(char *directoryName) {
  * @param str the pointer that points to the new string.
  */
 void convertMonthToStr(int month, char *str) {
-    /* use the switch statement to convert the month from number to string */
-    switch (month) {
-        case 0 : 
-            strcopy(str, "Jan", 3);
-            break;
-        case 1 : 
-            strcopy(str, "Feb", 3);
-            break;
-        case 2:
-            strcopy(str, "Mar", 3);
-            break;
-        case 3:
-            strcopy(str, "Apr", 3);
-            break;
-        case 4:
-            strcopy(str, "May", 3);
-            break;
-        case 5:
-            strcopy(str, "Jun", 3);
-            break;
-        case 6:
-            strcopy(str, "Jul", 3);
-            break;
-        case 7:
-            strcopy(str, "Aug", 3);
-            break;
-        case 8:
-            strcopy(str, "Sep", 3);
-            break;
-        case 9:
-            strcopy(str, "Oct", 3);
-            break;
-        case 10:
-            strcopy(str, "Nov", 3);
-            break;
-        case 11:
-            strcopy(str, "Dec", 3);
-    }
+    strcopy(str, months[month], 3);
 }
 
 /**
