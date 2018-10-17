@@ -243,7 +243,7 @@ int strCompare(const char *str1, const char *str2) {
 }
 
 /**
- * This function uses the stat syscall to check if the given name of file is a directory or a file.
+ * This function uses the stat syscall to check if the file with the given name is a directory or a file.
  *
  * @param name the name of the file (or directory)
  * @param statBuffer the buffer to store the file stat

@@ -706,7 +706,7 @@ void util(char *fileName) {
 }
 
 /**
- * This function prints out the error message to announce to the user that the given name of the file (or directory) does no exist.
+ * This function prints out the error message to announce to the user that the the file (or directory) with the given name does no exist.
  *
  * @param fileName the name of the file that does not exist
  */
