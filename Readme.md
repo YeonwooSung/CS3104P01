@@ -147,8 +147,8 @@ To compile the mycat, type "gcc mycat.c -o mycat -Wall -Wextra" on the terminal.
 
 To execute the mycat, you need to type "./mycat [file ...]"
 
-    - If you type "./mycat" on the terminal, mycat will read the user input via stdin stream and print out    the read text via stdout stream.
+    - If you type "./mycat" on the terminal, mycat will read the user input via stdin stream and print out  the read text via stdout stream.
 
-    - If you type "./mycat file_name" (i.e. "./mycat text.txt"), the mycat will read the data in the given    name of file, and print out the read data via stdout stream.
+    - If you type "./mycat file_name" (i.e. "./mycat text.txt"), the mycat will read the data in the given name of file, and print out the read data via stdout stream.
 
     - You could give multiple file names as command line arguments.
