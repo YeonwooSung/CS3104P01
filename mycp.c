@@ -577,14 +577,6 @@ void terminateAndRemoveDir(char generated, char *name) {
  * @param destDir the name of the destination directory.
  */
 void copyFile(char *name, char *destName, char *destDir) {
-    printOut("copyFile: ");
-    printOut(name);
-    printOut(", ");
-    printOut(destName);
-    printOut(", ");
-    printOut(destDir);
-    printOut("\n\n");
-
     struct stat stats; // declares struct stat to store stat of argument
     int stat = checkFileStat(name, &stats);
 
