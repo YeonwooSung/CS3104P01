@@ -96,6 +96,33 @@ CLOSE(3), STAT(4), MMAP(9), MUNMAP(11), ACCESS(21), EXIT(60), TRUNC(76), FTRUNC(
 
 ### mycat
 
+The design of the mycat is really simple. It just checks the number of command line arguments, then read the user input (or open and read the target file(s)), and print out the read texts via stdout stream.
+
+The total number of system calls that were used for implementing the mycat is 5: READ(0), WRITE(1), OPEN(2), CLOSE(3), and STAT(4).
+
+#### Usage of each syscall
+
+1) READ:
+    
+    To read the user input or the opened file.
+
+2) WRITE:
+
+    To print out the texts via stdout stream.
+
+3) OPEN:
+
+    To open the file to read.
+
+4) CLOSE:
+
+    To close the opened file.
+
+5) STAT:
+
+    To check if the file with the given name exists.
+
+
 ## Usage
 
 ### myls
@@ -108,4 +135,20 @@ The myls requires more than 1 command line argument, which is the directory (or 
 
 ### mycp
 
+To compile the mycp, type "gcc myc.c -o mycp -Wall -Wextra" on the terminal.
+
+The mycp requires 2 command line arguments. The first argument should be the name of the source file (or the source directory). The second argument should be the name of the destination directory.
+
+    i.e. "./mycp SOURCE_DIRECTORY DESTINATION_DIRECTORY"
+
 ### mycat
+
+To compile the mycat, type "gcc mycat.c -o mycat -Wall -Wextra" on the terminal.
+
+To execute the mycat, you need to type "./mycat [file ...]"
+
+    - If you type "./mycat" on the terminal, mycat will read the user input via stdin stream and print out    the read text via stdout stream.
+
+    - If you type "./mycat file_name" (i.e. "./mycat text.txt"), the mycat will read the data in the given    name of file, and print out the read data via stdout stream.
+
+    - You could give multiple file names as command line arguments.
