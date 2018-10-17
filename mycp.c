@@ -26,9 +26,9 @@
 #define CHMOD_SYSCALL 90    //to change the mode(file permission) of the file
 
 /* preprocessors for the file permission mode */
-#define OPEN_MODE (S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)    //the mode for the open syscall
-#define MKDIR_MODE (S_IRWXU | S_IRWXG | S_IROTH)             //the mode for the mkdir syscall
-#define CREATE_MODE (S_IRWXU | S_IRWXG | S_IRWXO)            //the mode for the creat syscall
+#define OPEN_MODE (S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)              //the mode for the open syscall
+#define MKDIR_MODE (S_IRWXU | S_IRWXG | S_IROTH)                       //the mode for the mkdir syscall
+#define CREATE_MODE (S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH | S_IWOTH ) //the mode for the creat syscall
 
 /* preprocessors for the buffer size */
 #define READ_SIZE 4096     //buffer size for the read syscall
@@ -577,6 +577,14 @@ void terminateAndRemoveDir(char generated, char *name) {
  * @param destDir the name of the destination directory.
  */
 void copyFile(char *name, char *destName, char *destDir) {
+    printOut("copyFile: ");
+    printOut(name);
+    printOut(", ");
+    printOut(destName);
+    printOut(", ");
+    printOut(destDir);
+    printOut("\n\n");
+
     struct stat stats; // declares struct stat to store stat of argument
     int stat = checkFileStat(name, &stats);
 
@@ -587,12 +595,12 @@ void copyFile(char *name, char *destName, char *destDir) {
         return;
     }
 
+    int fd;
+
     //if the createFile function returns negative value, it means that the creat syscall failed
-    if (createFile(destName) < 0) {
+    if ((fd = createFile(destName)) < 0) {
         terminateAndRemoveDir(1, destDir);
     }
-
-    int fd = openFile(destName);
 
     int readFd = openFile(name);
 
@@ -628,7 +636,6 @@ void copyFile(char *name, char *destName, char *destDir) {
     while ((length = readFile(readFd, buffer, READ_SIZE)) > 0) {
         buffer[length] = '\0';
         writeText(buffer, fd);
-        //TODO writeText writes some dummy string to the target file..
     }
 
     struct stat newStat;
@@ -649,12 +656,16 @@ void copyFile(char *name, char *destName, char *destDir) {
     //change the file permission of the new file with the file permission mode of the original file.
     my_chmod(destName, stats.st_mode);
 
-    closeFile(fd); //close the opened file.
+    //close the opened files
+    closeFile(readFd);
+    closeFile(fd);
 }
 
 /**
  * This function is a wrapper function of the getdents system call.
- * //TODO
+ * It checks all files and sub-directories in the target directory.
+ * If there is any sub-directory in the target directory, this function 
+ * calls itself recursively for the recursive copy.
  *
  * @param directoryName the name of the target directory.
  * @param destinationName the name of the destination directory.
