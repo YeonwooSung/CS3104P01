@@ -756,6 +756,28 @@ void getDirectoryEntries(char *directoryName, char *destinationName) {
     }
 }
 
+/**
+ * The aim of this function is to check if the file path 1 is a prefix of file path2 to prevent copying the directory into itself.
+ *
+ * @param path1 the file path of the first directory
+ * @param path2 the file path of the second directory
+ * @return Returns 1 if the first file path is a prefix of the second file path. Otherwise, returns 0.
+ */
+char checkIfCopyingIntoItself(char *path1, char *path2) {
+    int i = 0;
+    char isPrefix = 1;
+
+    while (path1[i] != '\0') {
+        if (path1[i] != path2[i]) {
+            isPrefix = 0;
+            break;
+        }
+        i += 1;
+    }
+
+    return isPrefix;
+}
+
 /* mycp is a program that copies the source to the destination recursively. */
 int main(int argc, char **argv) {
 
@@ -825,6 +847,24 @@ int main(int argc, char **argv) {
                  */
                 if(strCompare(argv[1], ".") == 0) {
                     printErr("mycp: cannot copy a directory, '.', into itself\n");
+
+                    if (notExists) {
+                        //remove the created destination directory.
+                        removeDirectory(argv[2]);
+                    }
+
+                    exitProcess(0);
+                }
+
+                /*
+                 * Check if the argv[1] is a prefix of argv[2] to prevent copying the directory into itself.
+                 *
+                 * i.e. mycp should not copy the directory "test" into "test/test1" 
+                 */
+                if (checkIfCopyingIntoItself(argv[1], argv[2])) {
+                    printErr("mycp: cannot copy a directory, '");
+                    printErr(argv[1]);
+                    printErr("', into itself\n");
 
                     if (notExists) {
                         //remove the created destination directory.
