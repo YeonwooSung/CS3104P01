@@ -3,7 +3,7 @@
 
 ## Overview
 
-The main aim of this project is to implement program by using the linux system calls with inline assembler.
+The main aim of this project is to implement system utility, which works something similar to the command line tools, by using the linux system calls with inline assembler (implementing a simple system utility without using standard c libraries).
 
 ### myls
 
@@ -132,6 +132,43 @@ CLOSE(3), STAT(4), MMAP(9), MUNMAP(11), ACCESS(21), EXIT(60), TRUNC(76), FTRUNC(
 9) EXIT:
 
     To exit the process when the error occurred.
+
+10) TRUNC:
+
+    To truncate the copied file when the mycp writes data longer than expected.
+
+11) FTRUNC:
+
+    To re-truncate the copied file when the trunc syscall fails
+
+12) GETDENTS:
+
+    To iterate files in the source directory.
+
+13) MKDIR:
+
+    To make a new directory.
+
+14) RMDIR:
+
+    To remove the directory when the mycp failed to copy the directory.
+
+15) CREAT:
+
+    To create a new file.
+
+16) UNLINK:
+
+    To remove the created file from the file system when the mycp failed to copy the file.
+
+17) CHMOD:
+
+    To change the file permission mode of the copied file.
+
+
+#### Simple memory allocation
+
+I also used my custom simple memory allocating function to implement the mycp. The only reason that I used this is because that I need to implement a function, which concatenates strings (a custon strcat function).
 
 
 ### mycat
