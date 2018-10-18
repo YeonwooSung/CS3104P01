@@ -817,6 +817,23 @@ int main(int argc, char **argv) {
             initHeap();
 
             if (val > 0) { //checkFileStat returns 1 when the target file is a directory
+
+                /*
+                 * The first argument of the mycp should not be ".".
+                 * Basically, this is because that we need to prevent copying the directory into itself, 
+                 * which will make a infinity loop of copying.
+                 */
+                if(strCompare(argv[1], ".") == 0) {
+                    printErr("mycp: cannot copy a directory, '.', into itself\n");
+
+                    if (notExists) {
+                        //remove the created destination directory.
+                        removeDirectory(argv[2]);
+                    }
+
+                    exitProcess(0);
+                }
+
                 getDirectoryEntries(argv[1], argv[2]);
             } else { //checkFileStat returns 1 when the target file is not a directory.
 
