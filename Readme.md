@@ -180,6 +180,13 @@ I also used my custom simple memory allocating function that I used in the myls 
 According to the linux man page, the d_type, which is a field of linux_dirent structure, is a byte at the end of the structure that indicates the file type. By using this, mycp checks whether the particular file is a directory or not, while iterating the files and subdirectories in the directory.
 
 
+#### Copying the directory into itself
+
+If you try to copy the directory into itself with cp command (i.e. "cp -r . newDirectory"), the cp will print out the error message "cp: cannot copy a directory, '.', into itself, 'newDirectory/.'". Basically, this is because that if you try to copy some file into itself, then some unexpected infinite loop may be occurred, which will continue generating new files in the destination directory. This might make some segmentaion fault, so we need to prevent this.
+
+To prevent this error, I created the function "checkIfCopyingIntoItself()", which checks if the first command line argument is a prefix of the second command line argument. Because, if the first command line argument is a prefix of the second command line argument, then the "copying the directory into itself" error will be occurred (i.e. "./mycp test test/test1" will continue creating the new directory "test1" inside the "test1").
+
+
 ### mycat
 
 The design of the mycat is really simple. It just checks the number of command line arguments, then read the user input (or open and read the target file(s)), and print out the read texts via stdout stream.
