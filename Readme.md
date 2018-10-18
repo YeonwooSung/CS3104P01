@@ -92,8 +92,8 @@ Thus, while the getdents iterates the files in the directory, I read the file st
 
 As the aim of the mycp is to make a system utility that works something similar to the "cp -r" command, which copies file or directory recursively, I also tried to implement this with recursive way. So, while the getdents syscall iterates the files in the target directory, if there is a sub-directory in the source directory, the wrapper function of the getdents syscall will call itself recursively to copy all files and sub-directories in that sub-directory.
 
-The total number of system calls that were used for implementing the mycp is 17: READ(0), WRITE(1), OPEN(2),
-CLOSE(3), STAT(4), MMAP(9), MUNMAP(11), ACCESS(21), EXIT(60), TRUNC(76), FTRUNC(77), GETDENTS(78), MKDIR(83), RMDIR(84), CREAT(85), UNLINK(87), CHMOD(90).
+The total number of system calls that were used for implementing the mycp is 18: READ(0), WRITE(1), OPEN(2),
+CLOSE(3), STAT(4), MMAP(9), MUNMAP(11), ACCESS(21), EXIT(60), TRUNC(76), FTRUNC(77), GETDENTS(78), MKDIR(83), RMDIR(84), CREAT(85), UNLINK(87), CHMOD(90), and CHOWN(92).
 
 #### Usage of each system call
 
@@ -164,6 +164,10 @@ CLOSE(3), STAT(4), MMAP(9), MUNMAP(11), ACCESS(21), EXIT(60), TRUNC(76), FTRUNC(
 17) CHMOD:
 
     To change the file permission mode of the copied file.
+
+18) CHOWN:
+
+    To change the user id and group id of the copied file with the uid and gid of the original file.
 
 
 #### Simple memory allocation
