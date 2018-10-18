@@ -204,6 +204,28 @@ char *strconcat(const char *str1, const char *str2) {
 }
 
 /**
+ * This function compares the two strings.
+ *
+ * @param str1 the pointer that points to the first string
+ * @param str2 the pointer that points to the second string
+ *
+ * @return Returns an integer less than, equal to, or greater than zero if str1 is found, 
+ *         respectively, to be less than, to match, or be greater than str2.
+ */
+int strCompare(const char *str1, const char *str2) {
+    int i = 0;
+
+    while (str1[i] != '\0') {
+        if (str1[i] != str2[i]) {
+            break;
+        }
+        i += 1;
+    }
+
+    return (str1[i] - str2[i]);
+}
+
+/**
  * This function opens the file by using the syscall.
  * The openDirectory() will be used to open the directory for the ls command.
  * This function uses the extended inline assembler to make interaction with the kernel more explicit.
@@ -271,7 +293,7 @@ void getDirectoryEntries(char *directoryName) {
         for (bpos = 0; bpos < nread;) {
             ld = (struct linux_dirent *)(buf + bpos);
 
-            if (*ld->d_name != '.') {
+            if ((strCompare(ld->d_name, ".") != 0) && (strCompare(ld->d_name, "..") != 0)) {
 
                 if (*directoryName == '.' && *(directoryName+1) == '\0') {
                     checkFileStat(ld->d_name, 0);
