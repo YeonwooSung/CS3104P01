@@ -24,6 +24,7 @@
 #define CREAT_SYSCALL 85    //to create the file
 #define UNLINK_SYSCALL 87   //to remove the file from the file system
 #define CHMOD_SYSCALL 90    //to change the mode(file permission) of the file
+#define CHOWN_SYSCALL 92    //to change the user id and group id of the file.
 
 /* preprocessors for the file permission mode */
 #define OPEN_MODE (S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)              //the mode for the open syscall
@@ -556,6 +557,33 @@ int removeDirectory(char *name) {
 }
 
 /**
+ * This is a wrapper function of the chown syscall.
+ * The aim of this function is to change the owner of the file with the given user id and group id.
+ *
+ * @param name the name of the target file
+ * @param uid the new user id
+ * @param gid the new group id
+ * @return On success, zero is returned.
+ *         On error, some negative value would be returned, which depends on the error number of that error.
+ */
+int my_chown(char *name, long uid, long gid) {
+    long ret = -1;
+
+    asm("movq %1, %%rax\n\t" //%1 == (long) CHOWN_SYSCALL
+        "movq %2, %%rdi\n\t" //%2 == name
+        "movq %3, %%rsi\n\t" //%3 == uid
+        "movq %4, %%rdx\n\t" //%4 == gid
+        "syscall\n\t"
+        "movq %%rax, %0\n\t" //%0 == ret
+        : "=r"(ret)
+        : "r"((long)CHOWN_SYSCALL), "r"(name), "r"(uid), "r"(gid)
+        : "%rax", "%rdi", "%rsi", "rdx", "memory"
+    );
+
+    return ret;
+}
+
+/**
  * This function removes the generated directory(if required), and exit the process.
  *
  * @param generated to check whether the process should remove the directory or not
@@ -647,6 +675,9 @@ void copyFile(char *name, char *destName, char *destDir) {
 
     //change the file permission of the new file with the file permission mode of the original file.
     my_chmod(destName, stats.st_mode);
+
+    //change the user id and group id of the new file with the uid and gid of the original file.
+    my_chown(destName, stats.st_uid, stats.st_gid);
 
     //close the opened files
     closeFile(readFd);
