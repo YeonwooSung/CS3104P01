@@ -168,7 +168,7 @@ CLOSE(3), STAT(4), MMAP(9), MUNMAP(11), ACCESS(21), EXIT(60), TRUNC(76), FTRUNC(
 
 #### Simple memory allocation
 
-I also used my custom simple memory allocating function to implement the mycp. The only reason that I used this is because that I need to implement a function, which concatenates strings (a custon strcat function).
+I also used my custom simple memory allocating function that I used in the myls to implement the mycp. The only reason that I used this is because that I need to implement a function, which concatenates strings (a custon strcat function).
 
 
 ### mycat
