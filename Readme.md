@@ -90,8 +90,48 @@ Thus, while the getdents iterates the files in the directory, I read the file st
 
 ### mycp
 
+As the aim of the mycp is to make a system utility that works something similar to the "cp -r" command, which copies file or directory recursively, I also tried to implement this with recursive way. So, while the getdents syscall iterates the files in the target directory, if there is a sub-directory in the source directory, the wrapper function of the getdents syscall will call itself recursively to copy all files and sub-directories in that sub-directory.
+
 The total number of system calls that were used for implementing the mycp is 17: READ(0), WRITE(1), OPEN(2),
 CLOSE(3), STAT(4), MMAP(9), MUNMAP(11), ACCESS(21), EXIT(60), TRUNC(76), FTRUNC(77), GETDENTS(78), MKDIR(83), RMDIR(84), CREAT(85), UNLINK(87), CHMOD(90).
+
+#### Usage of each system call
+
+1) READ:
+
+    To read the source file to copy it.
+
+2) WRITE:
+
+    To write the read data to the destination.
+
+3) OPEN:
+
+    To open the file to read.
+
+4) CLOSE:
+
+    After finish copying, close the opened file.
+
+5) STAT:
+
+    To check the file length and the file permission of the source file.
+
+6) MMAP:
+
+    To get the virtual memory for the simple memory allocating function.
+
+7) MUNMAP:
+
+    To unmap the mapped virtual memory.
+
+8) ACCESS:
+
+    To check if the file with the given name exists.
+
+9) EXIT:
+
+    To exit the process when the error occurred.
 
 
 ### mycat
@@ -147,7 +187,7 @@ To compile the mycat, type "gcc mycat.c -o mycat -Wall -Wextra" on the terminal.
 
 To execute the mycat, you need to type "./mycat [file ...]"
 
-    - If you type "./mycat" on the terminal, mycat will read the user input via stdin stream and print out  the read text via stdout stream.
+    - If you type "./mycat" on the terminal, mycat will read the user input via stdin stream and print out the read text via stdout stream.
 
     - If you type "./mycat file_name" (i.e. "./mycat text.txt"), the mycat will read the data in the given name of file, and print out the read data via stdout stream.
 
