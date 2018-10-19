@@ -48,17 +48,6 @@ struct linux_dirent {
     char d_name[];           /* Filename (null-terminated) */
 };
 
-/*
- * A linked list to store directory names.
- */
-typedef struct file_list {
-    char *rDirPath;           /* The path of the directory that the program should read files in it */
-    char *wDirPath;           /* The path of the directory that the program should write new file */
-    struct file_list *next;   /* The pointer points to the next node of the linked list */
-    int fd;                   /* The file descriptor of the file */
-} List;
-
-
 /* The global variables for the custom memory allocating function */
 char *heap;        //the pointer that points the custom heap
 char *brkp = NULL; //the pointer that points the custom break of the heap
